@@ -2,7 +2,7 @@
 
 from requests_oauthlib import OAuth1Session
 import json
-import time, sys
+import time, sys, os
 from datetime import datetime, timedelta, timezone
 from requests.exceptions import ConnectionError
 import urllib.request
@@ -306,11 +306,11 @@ class TwetterObj:
 		if max_id and since_id:
 			raise Exception('Do not put both sin and max.')
 		if max_id:
-			params = {"user_id":user_id, "include_rts" = include_rts, "count" = 100, "max_id" = max_id}
+			params = {"user_id":user_id, "include_rts":include_rts, "count":100, "max_id":max_id}
 		elif since_id:
-			params = {"user_id":user_id, "include_rts" = include_rts, "count" = 100, "since_id" = since_id}
+			params = {"user_id":user_id, "include_rts":include_rts, "count":100, "since_id":since_id}
 		else:
-			params = {"user_id":user_id, "include_rts" = include_rts, "count" = 100}
+			params = {"user_id":user_id, "include_rts":include_rts, "count":100}
 		
 		#----------------
 		# 回数制限を確認
@@ -391,18 +391,18 @@ def pickupMedia(tweet):
 				DL_URL = media["media_url"]
 				FILENAME = os.path.basename(DL_URL)
 				DL_URL = DL_URL + ":orig"
-				ary.append("fn":FILENAME,"url":DL_URL)
+				ary.append({"fn":FILENAME,"url":DL_URL})
 			if media["type"] == 'animated_gif':
 				DL_URL = media["video_info"]["variants"][0]["url"]
 				FILENAME = os.path.basename(DL_URL)
-				ary.append("fn":FILENAME,"url":DL_URL)
+				ary.append({"fn":FILENAME,"url":DL_URL})
 			if media["type"] == 'video':
 				for var in media["video_info"]["variants"]:
-					DL_URL = media["video_info"]["variants"]["url"]
+					DL_URL = var["url"]
 					if '?tag=' in DL_URL:
 						DL_URL = DL_URL[:-6]
 					FILENAME = os.path.basename(DL_URL)
-					ary.append("fn":FILENAME,"url":DL_URL)
+					ary.append({"fn":FILENAME,"url":DL_URL})
 		return ary
 
 def downloadMedia(DL_URL, FILEPATH, FILENAME):
@@ -451,12 +451,12 @@ def main():
 	flist_res = getter.getFollowList(screen_name)
 	for f in flist_res:
 		FILEPATH = download_dir
-		for twi in checkTL(user_id = f["id"])
+		for twi in getter.checkTL(user_id = f["id"]):
 			ARY = pickupMedia(twi)
 			if ARY is None:
 				continue
 			for content in ARY:
-				downloadMedia(content["DL_URL"], FILEPATH, content["FILENAME"])
+				downloadMedia(content["url"], FILEPATH, content["fn"])
 	
 	# キーワード検索してJSONに出力
 	'''
