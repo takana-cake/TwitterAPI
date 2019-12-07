@@ -42,4 +42,5 @@ https://apps.twitter.com/
 [Markdown記法一覧 - Qiita](https://qiita.com/oreo/items/82183bfbaac69971917f)</br>
 </br>
 [TwitterAPI でツイートを大量に取得。サーバー側エラーも考慮（pythonで） | コード７区](http://ailaby.com/twitter_api/)</br>
+[辞書のPythonリスト、最大値インデックスの取得 - コードログ](https://codeday.me/jp/qa/20190410/506627.html)</br>
 
