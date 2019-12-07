@@ -381,6 +381,7 @@ class TwetterObj:
 ### download ###
 
 def pickupMedia(tweet):
+	ary = []
 	if not 'extended_entities' in tweet:
 		print("None")
 		return None
@@ -390,17 +391,19 @@ def pickupMedia(tweet):
 				DL_URL = media["media_url"]
 				FILENAME = os.path.basename(DL_URL)
 				DL_URL = DL_URL + ":orig"
+				ary.append("fn":FILENAME,"url":DL_URL)
 			if media["type"] == 'animated_gif':
 				DL_URL = media["video_info"]["variants"][0]["url"]
 				FILENAME = os.path.basename(DL_URL)
+				ary.append("fn":FILENAME,"url":DL_URL)
 			if media["type"] == 'video':
-				DL_URL = media["video_info"]["variants"][0]["url"]
-				if '.m3u8' in DL_URL:
-					DL_URL = media["video_info"]["variants"][1]["url"]
-				if '?tag=' in DL_URL:
-					DL_URL = DL_URL[:-6]
-				FILENAME = os.path.basename(DL_URL)
-		return DL_URL, FILENAME
+				for var in media["video_info"]["variants"]:
+					DL_URL = media["video_info"]["variants"]["url"]
+					if '?tag=' in DL_URL:
+						DL_URL = DL_URL[:-6]
+					FILENAME = os.path.basename(DL_URL)
+					ary.append("fn":FILENAME,"url":DL_URL)
+		return ary
 
 def downloadMedia(DL_URL, FILEPATH, FILENAME):
 	errcount = 0
@@ -440,13 +443,20 @@ def main():
 	getter = TwetterObj(CK, CS, AT, AS)
 	
 	# フォローしている人のMediaをDownload
+	if len(sys.argv) == 2:
+		screen_name = sys.argv[1]
 	download_dir = "/mnt/nas43/" + screen_name + "/"
+	if os.path.exists(download_dir) == False:
+		os.makedirs(download_dir)
 	flist_res = getter.getFollowList(screen_name)
 	for f in flist_res:
 		FILEPATH = download_dir
 		for twi in checkTL(user_id = f["id"])
-			DL_URL, FILENAME = pickupMedia(twi)
-			downloadMedia(DL_URL, FILEPATH, FILENAME)
+			ARY = pickupMedia(twi)
+			if ARY is None:
+				continue
+			for content in ARY:
+				downloadMedia(content["DL_URL"], FILEPATH, content["FILENAME"])
 	
 	# キーワード検索してJSONに出力
 	'''
