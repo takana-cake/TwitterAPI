@@ -352,15 +352,12 @@ class TwetterObj:
 				break
 			'''
 
-			for tweet in json.loads(res.text):
-				if (('retweeted_status' in tweet) and (includeRetweet is False)):
-					pass
-				else:
-					yield tweet
+			for tweet_tl in json.loads(res.text):
+				yield tweet_tl
 			if "since_id" in params:
-				params['since_id'] = tweet['id'] + 1
+				params['since_id'] = tweet_tl['id'] + 1
 			else:
-				params['max_id'] = tweet['id'] - 1
+				params['max_id'] = tweet_tl['id'] - 1
 			
 
 			# ヘッダ確認 （回数制限）
@@ -383,7 +380,6 @@ class TwetterObj:
 def pickupMedia(tweet):
 	ary = []
 	if not 'extended_entities' in tweet:
-		print("None")
 		return None
 	if 'media' in tweet["extended_entities"]:
 		for media in tweet["extended_entities"]["media"]:
@@ -400,7 +396,7 @@ def pickupMedia(tweet):
 				for var in media["video_info"]["variants"]:
 					DL_URL = var["url"]
 					if '?tag=' in DL_URL:
-						DL_URL = DL_URL[:-6]
+						DL_URL = DL_URL.rsplit("?", 1)[0]
 					FILENAME = os.path.basename(DL_URL)
 					ary.append({"fn":FILENAME,"url":DL_URL})
 		return ary
