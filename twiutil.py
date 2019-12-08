@@ -453,7 +453,7 @@ def main():
 		try:
 			json_data = json.load(save)
 		except ValueError:
-			json_data = []
+			json_data = {}
 	flist_res = getter.getFollowList(screen_name)
 	for f in flist_res:
 		FILEPATH = download_dir + f["screen_name"] + "/"
