@@ -393,8 +393,10 @@ def pickupMedia(tweet):
 				FILENAME = os.path.basename(DL_URL)
 				ary.append({"fn":FILENAME,"url":DL_URL})
 			if media["type"] == 'video':
-				for var in media["video_info"]["variants"]:
-					DL_URL = var["url"]
+				for i, var in enumerate(media["video_info"]["variants"]):
+					if not "bitrate" in media["video_info"]["variants"][i]:
+						media["video_info"]["variants"].pop(i)
+				DL_URL = max(media["video_info"]["variants"], key=lambda d: d["bitrate"])["url"]
 					if '?tag=' in DL_URL:
 						DL_URL = DL_URL.rsplit("?", 1)[0]
 					FILENAME = os.path.basename(DL_URL)
@@ -415,7 +417,7 @@ def downloadMedia(DL_URL, FILEPATH, FILENAME):
 		except Exception as e:
 			if errcount < 3:
 				print(e)
-				sleep(60)
+				time.sleep(60)
 				continue
 		break
 
@@ -444,15 +446,32 @@ def main():
 	download_dir = "/mnt/nas43/" + screen_name + "/"
 	if os.path.exists(download_dir) == False:
 		os.makedirs(download_dir)
+	if os.path.exists(download_dir + "save.json") == False:
+		with open(download_dir + "save.json", "w") as save:
+			pass
+	with open(download_dir + "save.json", "r") as save:
+		try:
+			json_data = json.load(save)
+		except ValueError:
+			json_data = []
 	flist_res = getter.getFollowList(screen_name)
 	for f in flist_res:
-		FILEPATH = download_dir
+		FILEPATH = download_dir + f["screen_name"] + "/"
+		if os.path.exists(FILEPATH) == False:
+			os.makedirs(FILEPATH)
+		max_id = ""
 		for twi in getter.checkTL(user_id = f["id"]):
+			#def checkTL(self, user_id, include_rts = False, since_id = "", max_id = ""):
+			if not max_id:
+				max_id = twi["id"]
 			ARY = pickupMedia(twi)
 			if ARY is None:
 				continue
 			for content in ARY:
 				downloadMedia(content["url"], FILEPATH, content["fn"])
+		json_data[f["screen_name"]] = max_id
+	with open(download_dir + "save.json", "w") as save:
+		json.dump(json_data,save)
 	
 	# キーワード検索してJSONに出力
 	'''
