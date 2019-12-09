@@ -38,6 +38,7 @@ https://apps.twitter.com/
 
 
 ## 参考にさせていただいたサイト</br>
+[Response codes — Twitter Developers](https://developer.twitter.com/en/docs/basics/response-codes)</br>
 [自動化ルール](https://help.twitter.com/ja/rules-and-policies/twitter-automation)</br>
 [Markdown記法一覧 - Qiita](https://qiita.com/oreo/items/82183bfbaac69971917f)</br>
 </br>
