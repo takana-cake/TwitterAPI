@@ -32,9 +32,12 @@ https://apps.twitter.com/
 
 「Key and Access Tokens」の「Create my access token」をクリック
 
+### API申請せずアクセストークンとアクセスシークレットを取得する
+URLを発行する。あとで書く</br>
+
 
 ### インストール
-
+gifコンバートあたりをあとで書く</br>
 
 
 ## 参考にさせていただいたサイト</br>
