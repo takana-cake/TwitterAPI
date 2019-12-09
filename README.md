@@ -1,6 +1,6 @@
 # Twitter API
 
-参考サイトのほぼコピペです。</br>
+自分用のまとめ。参考サイトのほぼコピペです。</br>
 本スクリプトはコンテンツの著作権侵害を助長するものではありません。</br>
 
 <a href=https://help.twitter.com/ja/rules-and-policies/copyright-policy>著作権に関するポリシー</a></br>
