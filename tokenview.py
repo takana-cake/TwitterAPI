@@ -7,7 +7,7 @@ def TwitterOAuth(consumer_key, consumer_secret, oauth_token = None, oauth_verifi
 	twitter = OAuth1Session(consumer_key, consumer_secret, oauth_token, oauth_verifier)
 	return twitter
 
-def request_token(twitter, oauth_callback = "https://foo/var/tokenview.php"):	# callbackに設定したURL入れる
+def request_token(twitter, oauth_callback = "https://knowledgestack.dip.jp/pages/tokenview.php"):
 	request_token_url = "https://api.twitter.com/oauth/request_token"
 	response = twitter.post(
 			request_token_url,
@@ -33,20 +33,20 @@ def access_token(twitter, oauth_verifier):
 	access_token = dict(parse_qsl(response.content.decode("utf-8")))
 	return access_token
 
-# Consumer API keyとConsumer API key secretを設定
+
 dir = "/var/www/cgi-bin/"
 file = open(dir + "secret.json")
 json_data = json.load(file)
 consumer_key = json_data["CK"]
 consumer_secret = json_data["CS"]
 
-if len(sys.argv) == 1:	# アプリ連携の画面出す
+if len(sys.argv) == 1:
 	twitter = TwitterOAuth(consumer_key, consumer_secret)
 	token = request_token(twitter)
 	authenticate_url = "https://api.twitter.com/oauth/authenticate"
 	authenticate_endpoint = '%s?oauth_token=%s' % (authenticate_url, token['oauth_token'])
 	print(authenticate_endpoint)
-elif len(sys.argv) == 3:	# Access tokenとAccess token secretを出す
+elif len(sys.argv) == 3:
 	save = open(dir + "save.json","r+")
 	with open(dir + "save.json", "r") as save:
 		try:
@@ -57,14 +57,16 @@ elif len(sys.argv) == 3:	# Access tokenとAccess token secretを出す
 	oauth_verifier = sys.argv[2]
 	twitter = TwitterOAuth(consumer_key, consumer_secret, oauth_token, oauth_verifier)
 	access_token = access_token(twitter, oauth_verifier)
-	for i,user in in enumerate(json_data):
-		if user["user_id"] == access_token["user_id"]:
-			if user["oauth_token"] == access_token["oauth_token"]:
-				pass
-			else:
-				json_data[i]["oauth_token"] = access_token["oauth_token"]
-		else:
-			json_data.append(access_token)
+	# 良い手段が思いつかない
+	flag = False
+	for i in len(json_data):
+		if json_data[i]["user_id"] == access_token["user_id"]:
+			json_data[i]["screen_name"] = user["screen_name"]
+			json_data[i]["oauth_token"] = access_token["oauth_token"]
+			json_data[i]["oauth_token_secret"] = access_token["oauth_token_secret"]
+			flag = True
+	if flag is False:
+		json_data.append(access_token)
 	with open(dir + "save.json", "w") as save:
 		json.dump(json_data,save)
 	print(access_token)
