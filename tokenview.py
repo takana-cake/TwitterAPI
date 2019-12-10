@@ -1,4 +1,4 @@
-#v.20191210.0
+#v.20191210.1
 import sys
 import json
 from requests_oauthlib import OAuth1Session
@@ -60,9 +60,9 @@ elif len(sys.argv) == 3:
 	access_token = access_token(twitter, oauth_verifier)
 	# 良い手段が思いつかない
 	flag = False
-	for i in len(json_data):
+	for i in range(len(json_data)):
 		if json_data[i]["user_id"] == access_token["user_id"]:
-			json_data[i]["screen_name"] = user["screen_name"]
+			json_data[i]["screen_name"] = access_token["screen_name"]
 			json_data[i]["oauth_token"] = access_token["oauth_token"]
 			json_data[i]["oauth_token_secret"] = access_token["oauth_token_secret"]
 			flag = True
