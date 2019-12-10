@@ -440,7 +440,7 @@ def pickupMedia(tweet):
 						DL_URL = DL_URL.rsplit("?", 1)[0]
 					FILENAME = os.path.basename(DL_URL)
 					ary.append({"fn":FILENAME,"url":DL_URL})
-		return ary
+	return ary
 
 def downloadMedia(DL_URL, FILEPATH, FILENAME):
 	errcount = 0
