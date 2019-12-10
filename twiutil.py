@@ -340,7 +340,9 @@ class TwetterObj:
 			unavailableCnt = 0
 
 			if res.status_code != 200:
-				raise Exception('Twitter API error %d' % res.status_code)
+				if "Not authorized." in res.text:
+					break
+				raise Exception('Twitter API error ',res.status_code,res.text)
 
 			'''
 			tweets = self.pickupTweet(json.loads(res.text))
@@ -426,8 +428,14 @@ def main():
 	dir = "/var/www/cgi-bin/"
 	secret = "secret.json"
 	
+	if os.path.exists(dir + secret) == False:
+		with open(dir + secret,"w") as f:
+			pass
 	with open(dir + secret) as f:
-		secret = json.load(f)
+		try:
+			secret = json.load(f)
+		except ValueError:
+			pass
 	CK = secret["CK"]
 	CS = secret["CS"]
 	AT = secret["AT"]
@@ -446,10 +454,10 @@ def main():
 	download_dir = "/mnt/nas43/" + screen_name + "/"
 	if os.path.exists(download_dir) == False:
 		os.makedirs(download_dir)
-	if os.path.exists(download_dir + "save.json") == False:
-		with open(download_dir + "save.json", "w") as save:
+	if os.path.exists(download_dir + "db.json") == False:
+		with open(download_dir + "db.json", "w") as save:
 			pass
-	with open(download_dir + "save.json", "r") as save:
+	with open(download_dir + "db.json", "r") as save:
 		try:
 			json_data = json.load(save)
 		except ValueError:
@@ -470,7 +478,7 @@ def main():
 			for content in ARY:
 				downloadMedia(content["url"], FILEPATH, content["fn"])
 		json_data[f["screen_name"]] = max_id
-	with open(download_dir + "save.json", "w") as save:
+	with open(download_dir + "db.json", "w") as save:
 		json.dump(json_data,save)
 	
 	# キーワード検索してJSONに出力
