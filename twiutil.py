@@ -1,7 +1,7 @@
 #v.20191211.0
 # -*- coding: utf-8 -*-
 
-from logging import getLogger, StreamHandler, DEBUG
+from logging import getLogger, StreamHandler, DEBUG, basicConfig
 from requests_oauthlib import OAuth1Session
 import json
 import time, sys, os
@@ -456,6 +456,7 @@ def logger():
 	logger.setLevel(DEBUG)
 	logger.addHandler(handler)
 	logger.propagate = False
+	logger.basicConfig(filename='./twiutil.log')
 	return logger
 
 
