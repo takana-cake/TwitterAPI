@@ -436,10 +436,10 @@ def pickupMedia(tweet):
 					if not "bitrate" in media["video_info"]["variants"][i]:
 						media["video_info"]["variants"].pop(i)
 				DL_URL = max(media["video_info"]["variants"], key=lambda d: d["bitrate"])["url"]
-					if '?tag=' in DL_URL:
-						DL_URL = DL_URL.rsplit("?", 1)[0]
-					FILENAME = os.path.basename(DL_URL)
-					ary.append({"fn":FILENAME,"url":DL_URL})
+				if '?tag=' in DL_URL:
+					DL_URL = DL_URL.rsplit("?", 1)[0]
+				FILENAME = os.path.basename(DL_URL)
+				ary.append({"fn":FILENAME,"url":DL_URL})
 	return ary
 
 def downloadMedia(DL_URL, FILEPATH, FILENAME):
