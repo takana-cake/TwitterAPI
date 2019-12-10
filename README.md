@@ -28,15 +28,14 @@ Twitterアカウントの「設定」メニューの「モバイル」を開き�
 
 https://apps.twitter.com/
 
-※作成の際に作成理由？みたいなのを300字ぐらい入れなきゃならない。適当に打ってもダメっぽい？
-
-「Key and Access Tokens」の「Create my access token」をクリック
+「Key and Tokens」から「Access token & access token secret」のCreateをクリック
 
 ### API申請せずアクセストークンとアクセスシークレットを取得する
-URLを発行する。あとで書く</br>
+提携アプリを使ってトークンを発行する。</br>
+上記同様アプリを作成、tokenviewにConsumer API keysを適用させてURLを発行。</br>
+Access token & secretを発行したいアカウントでURLにアクセスする。</br>
 
-
-### インストール
+### インストールするもの
 gifコンバートあたりをあとで書く</br>
 
 
