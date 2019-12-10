@@ -19,7 +19,7 @@
 
 ## 使い方
 
-### APIキー、アクセストークンの取得
+### APIキー、アクセストークンを発行
 APIをたたくのに使う。</br>
 Twitterアカウントの「設定」メニューの「モバイル」を開き電話番号を入力し認証。</br>
 認証後は電話番号を削除すれば他アカウントにも使える（たぶん）
@@ -30,7 +30,7 @@ https://apps.twitter.com/
 
 「Key and Tokens」から「Access token & access token secret」のCreateをクリック
 
-### API申請せずアクセストークンとアクセスシークレットを取得する
+### 別のアカウントのアクセストークンとアクセスシークレットを取得する
 提携アプリを使ってトークンを発行する。</br>
 callbackをtokenviewにして上記同様アプリを作成、tokenviewにConsumer API keysを適用させてURLを発行。</br>
 Access token & secretを発行したいアカウントでURLにアクセスする。</br>
