@@ -45,6 +45,8 @@ gifコンバートあたりをあとで書く</br>
 [自動化ルール](https://help.twitter.com/ja/rules-and-policies/twitter-automation)</br>
 [Markdown記法一覧 - Qiita](https://qiita.com/oreo/items/82183bfbaac69971917f)</br>
 </br>
+[[Python] OAuth認証でTwitter連携/ログインを実装する - Qiita](https://qiita.com/mikan3rd/items/686e4978f9e1111628e9)</br>
+[PHPのnull・空の判定・存在チェック方法5種の比較。 isset()、empty()、is_null()、== null、 ===null | WEMO](https://wemo.tech/464)</br>
 [TwitterAPI でツイートを大量に取得。サーバー側エラーも考慮（pythonで） | コード７区](http://ailaby.com/twitter_api/)</br>
 [辞書のPythonリスト、最大値インデックスの取得 - コードログ](https://codeday.me/jp/qa/20190410/506627.html)</br>
 
