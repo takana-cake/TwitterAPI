@@ -1,6 +1,7 @@
-#v.20191210.0
+#v.20191211.0
 # -*- coding: utf-8 -*-
 
+from logging import getLogger, StreamHandler, DEBUG
 from requests_oauthlib import OAuth1Session
 import json
 import time, sys, os
@@ -35,7 +36,7 @@ class TwetterObj:
 			try:
 				res = self.session.get(url_search, params = params)
 			except ConnectionError as e:
-				print("ConnectionError:",e)
+				logger.debug("ConnectionError:" + e)
 				time.sleep(60)
 				continue
 			if res.status_code == 503:
@@ -44,7 +45,7 @@ class TwetterObj:
 					raise Exception('Twitter API error %d' % res.status_code)
 
 				unavailableCnt += 1
-				print ('Service Unavailable 503')
+				logger.debug('Service Unavailable 503')
 				self.waitUntilReset(time.mktime(datetime.now().timetuple()) + 30)
 				continue
 
@@ -84,7 +85,7 @@ class TwetterObj:
 					self.waitUntilReset(int(res.headers['X-Rate-Limit-Reset']))
 					self.checkLimit("search", "/search/tweets")
 			else:
-				print ('not found  -  X-Rate-Limit-Remaining" OR "X-Rate-Limit-Reset')
+				logger.debug('not found  -  X-Rate-Limit-Remaining" OR "X-Rate-Limit-Reset')
 				self.checkLimit("search", "/search/tweets")
 
 	def checkLimit(self, arg1, arg2):
@@ -97,7 +98,7 @@ class TwetterObj:
 			try:
 				res = self.session.get(url)
 			except ConnectionError as e:
-				print("ConnectionError:",e)
+				logger.debug("ConnectionError:" + e)
 				time.sleep(60)
 				continue
 			if res.status_code == 503:
@@ -105,7 +106,7 @@ class TwetterObj:
 				if unavailableCnt > 10:
 					raise Exception('Twitter API error %d' % res.status_code)
 				unavailableCnt += 1
-				print ('Service Unavailable 503')
+				logger.debug('Service Unavailable 503')
 				self.waitUntilReset(time.mktime(datetime.now().timetuple()) + 30)
 				continue
 			if res.status_code != 200:
@@ -121,9 +122,7 @@ class TwetterObj:
 	def waitUntilReset(self, reset):
 		seconds = reset - time.mktime(datetime.now().timetuple())
 		seconds = max(seconds, 0)
-		print ('\n       =====================')
-		print ('	 == waiting %d sec ==' % seconds)
-		print ('	 =====================')
+		logger.debug("waiting" + seconds + "sec")
 		sys.stdout.flush()
 		time.sleep(seconds + 10)  # 念のため + 10 秒
 
@@ -135,20 +134,18 @@ class TwetterObj:
 			try:
 				res = self.session.post(url_fav, params = params)
 			except ConnectionError as e:
-				print("ConnectionError:",e)
+				logger.debug("ConnectionError:" + e)
 				time.sleep(60)
 				continue
 			if res.status_code == 503:
 				if unavailableCnt > 10:
-					#_log(tweetId,res.status_code)
-					print(tweetId,res.status_code,res.text)
+					logger.debug(tweetId + res.status_code + res.text)
 					break
 				unavailableCnt += 1
 				self.waitUntilReset(time.mktime(datetime.datetime.now().timetuple()) + 30)
 				continue
 			if res.status_code != 200:
-				#_log(tweetId,res.status_code)
-				print(tweetId,res.status_code,res.text)
+				logger.debug(tweetId + res.status_code + res.text)
 			break
 		url_rt = "https://api.twitter.com/1.1/statuses/retweet/%d.json"%tweetId
 		unavailableCnt = 0
@@ -156,21 +153,20 @@ class TwetterObj:
 			try:
 				res = self.session.post(url_rt) # retweet実行
 			except ConnectionError as e:
-				print("ConnectionError:",e)
+				logger.debug("ConnectionError:" + e)
 				time.sleep(60)
 				continue
 			if res.status_code == 503:
 				# 503 : Service Unavailable
 				if unavailableCnt > 10:
 					#_log(tweetId,res.status_code)
-					print(tweetId,res.status_code,res.text)
+					logger.debug(tweetId + res.status_code + res.text)
 					break
 				unavailableCnt += 1
 				self.waitUntilReset(time.mktime(datetime.datetime.now().timetuple()) + 30)
 				continue
 			if res.status_code != 200:
-				#_log(tweetId,res.status_code)
-				print(tweetId,res.status_code,res.text)
+				logger.debug(tweetId + res.status_code + res.text)
 			break
 
 	def showStatus(self, repid):
@@ -181,20 +177,18 @@ class TwetterObj:
 			try:
 				res = self.session.get(url_show, params = params)
 			except ConnectionError as e:
-				print("ConnectionError:",e)
+				logger.debug("ConnectionError:" + e)
 				time.sleep(60)
 				continue
 			if res.status_code == 503:
 				if unavailableCnt > 10:
-					#_log(tweetId,res.status_code)
-					print("err05:",tweetId,res.status_code,res.text)
+					logger.debug(tweetId + res.status_code + res.text)
 					break
 				unavailableCnt += 1
 				self.waitUntilReset(time.mktime(datetime.datetime.now().timetuple()) + 30)
 				continue
 			if res.status_code != 200:
-				#_log(tweetId,res.status_code)
-				print("err06:",tweetId,res.status_code,res.text)
+				logger.debug(tweetId + res.status_code + res.text)
 			break
 		return res
 
@@ -217,21 +211,19 @@ class TwetterObj:
 			try:
 				res = self.session.get(url_flist, params = params)
 			except ConnectionError as e:
-				print("ConnectionError:",e)
+				logger.debug("ConnectionError:" + e)
 				time.sleep(60)
 				continue
 			if res.status_code == 503:
 				# 503 : Service Unavailable
 				if unavailableCnt > 10:
-					#_log(self.screen,res.status_code)
-					print(self.screen,res.status_code)
+					logger.debug(self.screen + res.status_code + res.text)
 					break
 				unavailableCnt += 1
 				self.waitUntilReset(time.mktime(datetime.now().timetuple()) + 30)
 				continue
 			if res.status_code != 200:
-				#_log(self.screen,res.status_code)
-				print(self.screen,res.status_code)
+				logger.debug(self.screen + res.status_code + res.text)
 				self.checkLimit("friends", "/friends/list")
 				if unavailableCnt > 10:
 					break
@@ -260,21 +252,19 @@ class TwetterObj:
 			try:
 				res = self.session.get(url_show, params = params)
 			except ConnectionError as e:
-				print("ConnectionError:",e)
+				logger.debug("ConnectionError:" + e)
 				time.sleep(60)
 				continue
 			if res.status_code == 503:
 				# 503 : Service Unavailable
 				if unavailableCnt > 10:
-					#_log(self.screen,res.status_code)
-					print(self.screen,res.status_code)
+					logger.debug(self.screen + res.status_code + res.text)
 					break
 				unavailableCnt += 1
 				self.waitUntilReset(time.mktime(datetime.now().timetuple()) + 30)
 				continue
 			if res.status_code != 200:
-				#_log(self.screen,res.status_code)
-				print(self.screen,res.status_code)
+				logger.debug(self.screen + res.status_code + res.text)
 				self.checkLimit("users", "/users/show")
 				if unavailableCnt > 10:
 					break
@@ -322,21 +312,19 @@ class TwetterObj:
 			try:
 				res = self.session.post(url_msg, headers=headers, data=payload)
 			except ConnectionError as e:
-				print("ConnectionError:",e)
+				logger.debug("ConnectionError:" + e)
 				time.sleep(60)
 				continue
 			if res.status_code == 503:
 				# 503 : Service Unavailable
 				if unavailableCnt > 10:
-					#_log(res.status_code)
-					print(res.status_code,res.text)
+					logger.debug(res.status_code + res.text)
 					break
 				unavailableCnt += 1
 				self.waitUntilReset(time.mktime(datetime.now().timetuple()) + 30)
 				continue
 			if res.status_code != 200:
-				#_log(res.status_code)
-				print(res.status_code,res.text)
+				logger.debug(res.status_code + res.text)
 			break
 
 	def checkTL(self, user_id, include_rts = False, since_id = "", max_id = ""):
@@ -364,7 +352,7 @@ class TwetterObj:
 			try:
 				res = self.session.get(url_tl, params = params)
 			except ConnectionError as e:
-				print("ConnectionError:",e)
+				logger.debug("ConnectionError:" + e)
 				time.sleep(60)
 				continue
 			if res.status_code == 503:
@@ -372,7 +360,7 @@ class TwetterObj:
 				if unavailableCnt > 10:
 					raise Exception('Twitter API error %d' % res.status_code)
 				unavailableCnt += 1
-				print ('Service Unavailable 503')
+				logger.debug("Service Unavailable 503")
 				self.waitUntilReset(time.mktime(datetime.now().timetuple()) + 30)
 				continue
 			unavailableCnt = 0
@@ -407,7 +395,7 @@ class TwetterObj:
 					self.waitUntilReset(int(res.headers['X-Rate-Limit-Reset']))
 					self.checkLimit("search", "/search/tweets")
 			else:
-				print ('not found  -  X-Rate-Limit-Remaining" OR "X-Rate-Limit-Reset')
+				logger.debug('not found  -  X-Rate-Limit-Remaining" OR "X-Rate-Limit-Reset')
 				self.checkLimit("search", "/search/tweets")
 			
 			cnt += 1
@@ -456,10 +444,19 @@ def downloadMedia(DL_URL, FILEPATH, FILENAME):
 				f.write(dl_file)
 		except Exception as e:
 			if errcount < 3:
-				print(e)
+				logger.debug(e)
 				time.sleep(60)
 				continue
 		break
+
+def logger():
+	logger = getLogger(__name__)
+	handler = StreamHandler()
+	handler.setLevel(DEBUG)
+	logger.setLevel(DEBUG)
+	logger.addHandler(handler)
+	logger.propagate = False
+	return logger
 
 
 def main():
@@ -495,7 +492,7 @@ def main():
 	if len(sys.argv) == 2:
 		screen_name = sys.argv[1]
 	else:
-		print("please set screenname")
+		logger.debug("please set screenname")
 		sys.exit()
 	user_id = getter.showUser(screen_name)["id"]
 	## 鍵対策
@@ -602,11 +599,12 @@ def main():
 	
 
 if __name__ == '__main__':
+	logger = logger()
 	main()
 else:
+	logger = logger()
 	print("""class
 	TwetterObj(CK, CS, AT, AS)
-
 method
 	collect(total = -1, onlyText = False, includeRetweet = False)
 	checkLimit(arg1, arg2)	Get rate limits and usage applied to each Rest API endpoint
@@ -614,12 +612,13 @@ method
 	retweet(tweetId)
 	showStatus(tweetId)		Return statuses-show response.
 	getFollowList(screen_name)	Get follow "id" and "screen_name".
+	showUser(screen_name = "", user_id = "")	Return user-show response.
 	checkKeyword(keyword, timer, timer_sin)		Append to self.tl2json list.
 	searchKeyword(keyword, total = 1000, onlyText = False, includeRetweet = False)
 		yield tweet.
 	messageSent(user_id, send_text)
 	checkTL(user_id, include_rts = False, since_id = "", max_id = "")
-
 function
-	pickupMedia(tweet)		yield DL_URL, FILENAME
-	downloadMedia(DL_URL, FILEPATH, FILENAME)""")
+	pickupMedia(tweet)		Return ary, {"fn":FILENAME,"url":DL_URL}
+	downloadMedia(DL_URL, FILEPATH, FILENAME)
+	logger()		logger.debug("log")""")
