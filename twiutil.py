@@ -244,7 +244,44 @@ class TwetterObj:
 			else:
 				params['cursor'] = res_loads['next_cursor']
 		return ids
-
+	
+	def showUser(self, screen_name = "", user_id = ""):
+		ids = []
+		url_show = 'https://api.twitter.com/1.1/users/show.json'
+		if screen_name:
+			params = {'screen_name':screen_name}
+		elif user_id:
+			params = {'user_id':user_id}
+		else:
+			return None
+		unavailableCnt = 0
+		while True:
+			try:
+				res = self.session.get(url_show, params = params)
+			except ConnectionError as e:
+				print("ConnectionError:",e)
+				time.sleep(60)
+				continue
+			if res.status_code == 503:
+				# 503 : Service Unavailable
+				if unavailableCnt > 10:
+					#_log(self.screen,res.status_code)
+					print(self.screen,res.status_code)
+					break
+				unavailableCnt += 1
+				self.waitUntilReset(time.mktime(datetime.now().timetuple()) + 30)
+				continue
+			if res.status_code != 200:
+				#_log(self.screen,res.status_code)
+				print(self.screen,res.status_code)
+				self.checkLimit("users", "/users/show")
+				if unavailableCnt > 10:
+					break
+				unavailableCnt += 1
+				continue
+			user = json.loads(res.text)
+			return user
+	
 	def checkKeyword(self, keyword, timer, timer_sin):
 		self.tl2json = []
 		self.keyword = keyword
@@ -442,6 +479,7 @@ def main():
 	AS = secret["AS"]
 	
 	screen_name = ""
+	user_id = ""
 	keyword = ""
 	JST = timezone(timedelta(hours=+9), 'JST')
 	
@@ -451,15 +489,30 @@ def main():
 	# フォローしている人のMediaをDownload
 	if len(sys.argv) == 2:
 		screen_name = sys.argv[1]
+	else:
+		print("please set screenname")
+		sys.exit()
+	user_id = showUser(screen_name)["id"]
+	## 鍵対策
+	if os.path.exists(dir + "save.json"):
+		with open(dir + "save.json") as save:
+			try:
+				save_data = json.load(save)	
+			except ValueError:
+				save_data = []
+		for usr in save_data:
+			if usr["user_id"] == user_id:
+				AT = save_data["oauth_token"]
+				AS = save_data["oauth_token_secret"]
 	download_dir = "/mnt/nas43/" + screen_name + "/"
 	if os.path.exists(download_dir) == False:
 		os.makedirs(download_dir)
 	if os.path.exists(download_dir + "db.json") == False:
 		with open(download_dir + "db.json", "w") as save:
 			pass
-	with open(download_dir + "db.json", "r") as save:
+	with open(download_dir + "db.json", "r") as db:
 		try:
-			json_data = json.load(save)
+			json_data = json.load(db)
 		except ValueError:
 			json_data = {}
 	flist_res = getter.getFollowList(screen_name)
