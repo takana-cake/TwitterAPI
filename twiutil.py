@@ -462,7 +462,11 @@ def downloadMedia(DL_URL, FILEPATH, FILENAME):
 
 
 def main():
-	dir = "/var/www/cgi-bin/"
+	#dir = "/foo/var/"
+	if os.path.dirname(sys.argv[0]):
+		dir = os.path.dirname(sys.argv[0]) + "/"
+	else:
+		dir = os.getcwd() +"/"
 	secret = "secret.json"
 	
 	if os.path.exists(dir + secret) == False:
@@ -492,7 +496,7 @@ def main():
 	else:
 		print("please set screenname")
 		sys.exit()
-	user_id = showUser(screen_name)["id"]
+	user_id = getter.showUser(screen_name)["id"]
 	## 鍵対策
 	if os.path.exists(dir + "save.json"):
 		with open(dir + "save.json") as save:
@@ -504,7 +508,7 @@ def main():
 			if usr["user_id"] == user_id:
 				AT = save_data["oauth_token"]
 				AS = save_data["oauth_token_secret"]
-	download_dir = "/mnt/nas43/" + screen_name + "/"
+	download_dir = dir + screen_name + "/"
 	if os.path.exists(download_dir) == False:
 		os.makedirs(download_dir)
 	if os.path.exists(download_dir + "db.json") == False:
