@@ -524,17 +524,21 @@ def main():
 		FILEPATH = download_dir + f["screen_name"] + "/"
 		if os.path.exists(FILEPATH) == False:
 			os.makedirs(FILEPATH)
-		max_id = ""
+		last_id = max_id = ""
+		if f["id"] in json_data:
+			last_id = json_data[f["id"]]
 		for twi in getter.checkTL(user_id = f["id"]):
 			#def checkTL(self, user_id, include_rts = False, since_id = "", max_id = ""):
 			if not max_id:
 				max_id = twi["id"]
+			if last_id == twi["id"]
+				break
 			ARY = pickupMedia(twi)
 			if ARY is None:
 				continue
 			for content in ARY:
 				downloadMedia(content["url"], FILEPATH, content["fn"])
-		json_data[f["screen_name"]] = max_id
+		json_data[f["id"]] = max_id
 	with open(download_dir + "db.json", "w") as save:
 		json.dump(json_data,save)
 	
