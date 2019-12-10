@@ -32,7 +32,7 @@ https://apps.twitter.com/
 
 ### API申請せずアクセストークンとアクセスシークレットを取得する
 提携アプリを使ってトークンを発行する。</br>
-上記同様アプリを作成、tokenviewにConsumer API keysを適用させてURLを発行。</br>
+callbackをtokenviewにして上記同様アプリを作成、tokenviewにConsumer API keysを適用させてURLを発行。</br>
 Access token & secretを発行したいアカウントでURLにアクセスする。</br>
 
 ### インストールするもの
