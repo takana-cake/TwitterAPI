@@ -1,7 +1,7 @@
-#v.20191211.0
+#v.20191211.1
 # -*- coding: utf-8 -*-
 
-from logging import getLogger, StreamHandler, DEBUG, basicConfig
+from logging import getLogger, handlers, Formatter, StreamHandler, DEBUG
 from requests_oauthlib import OAuth1Session
 import json
 import time, sys, os
@@ -451,12 +451,16 @@ def downloadMedia(DL_URL, FILEPATH, FILENAME):
 
 def logger():
 	logger = getLogger(__name__)
-	handler = StreamHandler()
-	handler.setLevel(DEBUG)
 	logger.setLevel(DEBUG)
-	logger.addHandler(handler)
+	formatter = Formatter("[%(asctime)s] [%(process)d] [%(name)s] [%(levelname)s] %(message)s")
+	handler_console = StreamHandler()
+	handler_console.setLevel(DEBUG)
+	handler_console.setFormatter(formatter)
+	logger.addHandler(handler_console)
+	handler_file = handlers.RotatingFileHandler(filename='./twiutil.log',maxBytes=1048576,backupCount=3)
+	handler_file.setFormatter(formatter)
+	logger.addHandler(handler_file)
 	logger.propagate = False
-	logger.basicConfig(filename='./twiutil.log')
 	return logger
 
 
