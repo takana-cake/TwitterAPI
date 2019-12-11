@@ -1,4 +1,3 @@
-
 #v.20191211.2
 # -*- coding: utf-8 -*-
 
@@ -666,6 +665,7 @@ method
 	checkLimit(arg1, arg2)  Get rate limits and usage applied to each Rest API endpoint
 	waitUntilReset(reset)
 	retweet(tweetId)
+	favorites(tweetId)
 	showStatus(tweetId)	     Return statuses-show response.
 	getFollowList(screen_name)      Get follow "id" and "screen_name".
 	showUser(screen_name = "", user_id = "")	Return user-show response.
