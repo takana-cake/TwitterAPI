@@ -1,4 +1,4 @@
-#v.20191210.2
+#v.20191211.0
 import sys
 import json
 from requests_oauthlib import OAuth1Session
