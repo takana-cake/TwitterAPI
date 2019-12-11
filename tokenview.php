@@ -1,4 +1,4 @@
-<!-- v.20191210.0 -->
+<!-- v.20191211.0 -->
 <!DOCTYPE html>
 <HTML>
 <HEAD>
@@ -11,7 +11,7 @@
 	if(isset($_GET['oauth_token'])) { $oatoken = $_GET['oauth_token'];}
 	if(isset($_GET['oauth_verifier'])) { $oaveri = $_GET['oauth_verifier'];}
 	if (isset($oatoken) && isset($oaveri)) {
-		$command="python3 /var/www/cgi-bin/tokenview.py ".$oatoken." ".$oaveri; ?>
+		$command="python3 /var/www/cgi-bin/tokenview.py ".$oatoken." ".$oaveri;
 		exec($command,$output);
 		echo $output[0];
 	} else {
