@@ -1,4 +1,4 @@
-#v.20191211.2
+#v.20191211.3
 # -*- coding: utf-8 -*-
 
 from logging import getLogger, handlers, Formatter, StreamHandler, DEBUG
@@ -275,27 +275,9 @@ class TwetterObj:
 			user = json.loads(res.text)
 			return user
 
-	def checkKeyword(self, keyword, timer, timer_sin):
-		self.tl2json = []
-		self.keyword = keyword
-		self.timer = timer
-		self.timer_sin = timer_sin
-		for tweet in self.collect(total = 1000):
-			unix_time = ((tweet['id'] >> 22) + 1288834974657) / 1000.0
-			ts = datetime.fromtimestamp(unix_time)
-			if self.timer_sin > ts:
-				break
-			if tweet['id'] in self.tl2json:
-				continue
-			if tweet['user']['id'] in self.flist_res:
-				self.tl2json.append({'name':tweet['user']['name'][:10], 'screen':tweet['user']['screen_name'], 'id':tweet['id'], 'text':tweet['text'][:20],'fflag':True})
-			else:
-				self.tl2json.append({'name':tweet['user']['name'][:10], 'screen':tweet['user']['screen_name'], 'id':tweet['id'], 'text':tweet['text'][:20], 'fflag':False})
-
 	def searchKeyword(self, keyword, total = 1000, onlyText = False, includeRetweet = False):
-		self.tl2json = []
 		self.keyword = keyword
-		for tweet in self.collect(total , onlyText , includeRetweet):
+		for tweet in self.collect(keyword, total, onlyText, includeRetweet):
 			yield tweet
 
 	def messageSent(self, send2id, send_text):
@@ -503,7 +485,7 @@ def main():
 			print("Access Secret(empty ok): ")
 			AS = input()
 
-	# ちょっとテスト用
+	# auth対策
 	screen_name = sys.argv[1]
 	if os.path.exists(dir + "save.json"):
 		with open(dir + "save.json") as save:
@@ -515,6 +497,7 @@ def main():
 			if usr["screen_name"] == screen_name:
 				AT = usr["oauth_token"]
 				AS = usr["oauth_token_secret"]
+				user_id = usr["user_id"]
 
 	#screen_name = ""
 	user_id = ""
@@ -531,17 +514,6 @@ def main():
 		logger.debug("please set screenname")
 		sys.exit()
 	user_id = getter.showUser(screen_name)["id"]
-	## 鍵対策
-	if os.path.exists(dir + "save.json"):
-		with open(dir + "save.json") as save:
-			try:
-				save_data = json.load(save)
-			except ValueError:
-				save_data = []
-		for usr in save_data:
-			if usr["user_id"] == user_id:
-				AT = usr["oauth_token"]
-				AS = usr["oauth_token_secret"]
 	download_dir = dir + screen_name + "/"
 	if os.path.exists(download_dir) == False:
 		os.makedirs(download_dir)
@@ -576,8 +548,38 @@ def main():
 	with open(download_dir + "db.json", "w") as save:
 		json.dump(json_data,save)
 	'''
-
+	
+	# keyword検索に対しフォローユーザがツイートしているか確認
+	flist_res = getter.getFollowList(screen_name)
+	flist = []
+	for f in flist_res:
+		flist.append(f["id"])
+	keyword = ""
+	text_msg = ""
+	timer = datetime.now() + timedelta(minutes=55)
+	timer_sin = datetime.now().replace(hour=0,minute=0,second=0) - timedelta(days=1)
+	for tweet in getter.collect(keyword, total = 1000):
+		cnt += 1
+		unix_time = ((tweet['id'] >> 22) + 1288834974657) / 1000.0
+		ts = datetime.fromtimestamp(unix_time)
+		if timer_sin > ts:
+		       break
+		if tweet['user']['id'] in flist:
+			text_msg = text_msg + "https://twitter.com/" + tweet['user']['screen'] + "/status/" + str(tweet['id']) +"\n"
+		timer_now = datetime.now()
+		if timer > timer_now and 95 < cnt:
+			slt = timer - timer_now
+			time.sleep(slt.total_seconds())
+		elif timer < timer_now:
+			timer = timer_now + timedelta(minutes=55)
+			cnt = 0
+		else:
+			time.sleep(30)
+	if text_msg:
+		getter.messageSent(i, send_text)
+	
 	# キーワード画像検索してFAVRT/day
+	'''
 	cnt = 0
 	keyword = sys.argv[2]
 	timer = datetime.now() + timedelta(minutes=55)
@@ -605,39 +607,13 @@ def main():
 			cnt = 0
 		else:
 			time.sleep(30)
+	'''
 
 	# キーワード検索してMedia抽出
 	'''
 	for i in getter.searchKeyword(keyword):
 		for j in pickupMedia(i):
 			print(j)
-	'''
-
-	# キーワード画像検索してFAVRT/day
-	'''
-	cnt = 0
-	for tweet in getter.collect(total = 1000):
-		cnt += 1
-		unix_time = ((tweet['id'] >> 22) + 1288834974657) / 1000.0
-		ts = datetime.fromtimestamp(unix_time)
-		if timer_sin > ts:
-			break
-		if "media" in tweet["entities"]:
-			getter.retweet(tweet['id'])
-		if tweet["in_reply_to_status_id_str"] is not None:
-			reptweet = getter.showStatus(tweet["in_reply_to_status_id_str"])
-			if "entities" in reptweet and "media" in reptweet["entities"]:
-				getter.retweet(reptweet['id'])
-		timer_now = datetime.now()
-		if timer > timer_now and 95 < cnt:
-			slt = timer - timer_now
-			#slt = math.ceil(slt.total_seconds() / 60)
-			time.sleep(slt.total_seconds())
-		elif timer < timer_now:
-			timer = timer_now + timedelta(minutes=55)
-			cnt = 0
-		else:
-			time.sleep(30)
 	'''
 
 	# DM送る
