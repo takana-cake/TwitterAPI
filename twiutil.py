@@ -1,4 +1,5 @@
-#v.20191211.1
+
+#v.20191211.2
 # -*- coding: utf-8 -*-
 
 from logging import getLogger, handlers, Formatter, StreamHandler, DEBUG
@@ -10,18 +11,18 @@ from requests.exceptions import ConnectionError
 import urllib.request
 
 class TwetterObj:
-	def __init__(self, CK, CS, AT, AS):
+	def __init__(self, CK, CS, AT = "", AS = ""):
 		self.session = OAuth1Session(CK, CS, AT, AS)
 
-	def collect(self, total = -1, onlyText = False, includeRetweet = False):
+	def collect(self, keyword, total = -1, onlyText = False, includeRetweet = False):
 		#----------------
 		# URL、パラメータ
 		#----------------
 		url_search = 'https://api.twitter.com/1.1/search/tweets.json'
-		params = {'q':self.keyword, 'count':100,'result_type':'mixed'}
+		params = {'q':keyword, 'count':100,'result_type':'mixed'}
 		params['include_rts'] = str(includeRetweet).lower()
 		# include_rts は statuses/user_timeline のパラメータ。search/tweets には無効
-		
+
 		#----------------
 		# 回数制限を確認
 		#----------------
@@ -36,7 +37,7 @@ class TwetterObj:
 			try:
 				res = self.session.get(url_search, params = params)
 			except ConnectionError as e:
-				logger.debug("ConnectionError:" + e)
+				logger.debug("ConnectionError:" + str(e))
 				time.sleep(60)
 				continue
 			if res.status_code == 503:
@@ -98,7 +99,7 @@ class TwetterObj:
 			try:
 				res = self.session.get(url)
 			except ConnectionError as e:
-				logger.debug("ConnectionError:" + e)
+				logger.debug("ConnectionError:" + str(e))
 				time.sleep(60)
 				continue
 			if res.status_code == 503:
@@ -126,47 +127,48 @@ class TwetterObj:
 		sys.stdout.flush()
 		time.sleep(seconds + 10)  # 念のため + 10 秒
 
-	def retweet(self, tweetId):
-		unavailableCnt = 0
+	def favorites(self, tweetId):
 		url_fav = "https://api.twitter.com/1.1/favorites/create.json"
 		params = {'id' : tweetId}
+		unavailableCnt = 0
 		while True:
 			try:
 				res = self.session.post(url_fav, params = params)
 			except ConnectionError as e:
-				logger.debug("ConnectionError:" + e)
+				logger.debug("ConnectionError:" + str(e))
 				time.sleep(60)
 				continue
 			if res.status_code == 503:
 				if unavailableCnt > 10:
-					logger.debug(tweetId + res.status_code + res.text)
+					logger.debug(str(tweetId) + str(res.status_code) + res.text)
 					break
 				unavailableCnt += 1
 				self.waitUntilReset(time.mktime(datetime.datetime.now().timetuple()) + 30)
 				continue
 			if res.status_code != 200:
-				logger.debug(tweetId + res.status_code + res.text)
+				logger.debug(str(tweetId) + str(res.status_code) + res.text)
 			break
+
+	def retweet(self, tweetId):
 		url_rt = "https://api.twitter.com/1.1/statuses/retweet/%d.json"%tweetId
 		unavailableCnt = 0
 		while True:
 			try:
 				res = self.session.post(url_rt) # retweet実行
 			except ConnectionError as e:
-				logger.debug("ConnectionError:" + e)
+				logger.debug("ConnectionError:" + str(e))
 				time.sleep(60)
 				continue
 			if res.status_code == 503:
 				# 503 : Service Unavailable
 				if unavailableCnt > 10:
-					#_log(tweetId,res.status_code)
-					logger.debug(tweetId + res.status_code + res.text)
+					logger.debug(str(tweetId) + str(res.status_code) + res.text)
 					break
 				unavailableCnt += 1
 				self.waitUntilReset(time.mktime(datetime.datetime.now().timetuple()) + 30)
 				continue
 			if res.status_code != 200:
-				logger.debug(tweetId + res.status_code + res.text)
+				logger.debug(str(tweetId) + str(res.status_code) + res.text)
 			break
 
 	def showStatus(self, repid):
@@ -177,20 +179,21 @@ class TwetterObj:
 			try:
 				res = self.session.get(url_show, params = params)
 			except ConnectionError as e:
-				logger.debug("ConnectionError:" + e)
+				logger.debug("ConnectionError:" + str(e))
 				time.sleep(60)
 				continue
 			if res.status_code == 503:
 				if unavailableCnt > 10:
-					logger.debug(tweetId + res.status_code + res.text)
+					logger.debug(str(tweetId) + str(res.status_code) + res.text)
 					break
 				unavailableCnt += 1
 				self.waitUntilReset(time.mktime(datetime.datetime.now().timetuple()) + 30)
 				continue
 			if res.status_code != 200:
-				logger.debug(tweetId + res.status_code + res.text)
+				logger.debug(str(tweetId) + str(res.status_code) + res.text)
 			break
-		return res
+		res_text = json.loads(res.text)
+		return res_text
 
 	def pickupTweet(self, res_text):
 		'''
@@ -211,19 +214,19 @@ class TwetterObj:
 			try:
 				res = self.session.get(url_flist, params = params)
 			except ConnectionError as e:
-				logger.debug("ConnectionError:" + e)
+				logger.debug("ConnectionError:" + str(e))
 				time.sleep(60)
 				continue
 			if res.status_code == 503:
 				# 503 : Service Unavailable
 				if unavailableCnt > 10:
-					logger.debug(self.screen + res.status_code + res.text)
+					logger.debug(self.screen + str(res.status_code) + res.text)
 					break
 				unavailableCnt += 1
 				self.waitUntilReset(time.mktime(datetime.now().timetuple()) + 30)
 				continue
 			if res.status_code != 200:
-				logger.debug(self.screen + res.status_code + res.text)
+				logger.debug(self.screen + str(res.status_code) + res.text)
 				self.checkLimit("friends", "/friends/list")
 				if unavailableCnt > 10:
 					break
@@ -237,7 +240,7 @@ class TwetterObj:
 			else:
 				params['cursor'] = res_loads['next_cursor']
 		return ids
-	
+
 	def showUser(self, screen_name = "", user_id = ""):
 		ids = []
 		url_show = 'https://api.twitter.com/1.1/users/show.json'
@@ -252,19 +255,19 @@ class TwetterObj:
 			try:
 				res = self.session.get(url_show, params = params)
 			except ConnectionError as e:
-				logger.debug("ConnectionError:" + e)
+				logger.debug("ConnectionError:" + str(e))
 				time.sleep(60)
 				continue
 			if res.status_code == 503:
 				# 503 : Service Unavailable
 				if unavailableCnt > 10:
-					logger.debug(self.screen + res.status_code + res.text)
+					logger.debug(self.screen + str(res.status_code) + res.text)
 					break
 				unavailableCnt += 1
 				self.waitUntilReset(time.mktime(datetime.now().timetuple()) + 30)
 				continue
 			if res.status_code != 200:
-				logger.debug(self.screen + res.status_code + res.text)
+				logger.debug(self.screen + str(res.status_code) + res.text)
 				self.checkLimit("users", "/users/show")
 				if unavailableCnt > 10:
 					break
@@ -272,7 +275,7 @@ class TwetterObj:
 				continue
 			user = json.loads(res.text)
 			return user
-	
+
 	def checkKeyword(self, keyword, timer, timer_sin):
 		self.tl2json = []
 		self.keyword = keyword
@@ -312,19 +315,19 @@ class TwetterObj:
 			try:
 				res = self.session.post(url_msg, headers=headers, data=payload)
 			except ConnectionError as e:
-				logger.debug("ConnectionError:" + e)
+				logger.debug("ConnectionError:" + str(e))
 				time.sleep(60)
 				continue
 			if res.status_code == 503:
 				# 503 : Service Unavailable
 				if unavailableCnt > 10:
-					logger.debug(res.status_code + res.text)
+					logger.debug(str(res.status_code) + res.text)
 					break
 				unavailableCnt += 1
 				self.waitUntilReset(time.mktime(datetime.now().timetuple()) + 30)
 				continue
 			if res.status_code != 200:
-				logger.debug(res.status_code + res.text)
+				logger.debug(str(res.status_code) + res.text)
 			break
 
 	def checkTL(self, user_id, include_rts = False, since_id = "", max_id = ""):
@@ -337,7 +340,7 @@ class TwetterObj:
 			params = {"user_id":user_id, "include_rts":include_rts, "count":100, "since_id":since_id}
 		else:
 			params = {"user_id":user_id, "include_rts":include_rts, "count":100}
-		
+
 		#----------------
 		# 回数制限を確認
 		#----------------
@@ -352,7 +355,7 @@ class TwetterObj:
 			try:
 				res = self.session.get(url_tl, params = params)
 			except ConnectionError as e:
-				logger.debug("ConnectionError:" + e)
+				logger.debug("ConnectionError:" + str(e))
 				time.sleep(60)
 				continue
 			if res.status_code == 503:
@@ -386,7 +389,7 @@ class TwetterObj:
 				params['since_id'] = tweet_tl['id'] + 1
 			else:
 				params['max_id'] = tweet_tl['id'] - 1
-			
+
 
 			# ヘッダ確認 （回数制限）
 			# X-Rate-Limit-Remaining が入ってないことが稀にあるのでチェック
@@ -397,7 +400,7 @@ class TwetterObj:
 			else:
 				logger.debug('not found  -  X-Rate-Limit-Remaining" OR "X-Rate-Limit-Reset')
 				self.checkLimit("search", "/search/tweets")
-			
+
 			cnt += 1
 			if cnt >= 100:
 				break
@@ -465,37 +468,66 @@ def logger():
 
 
 def main():
-	#dir = "/foo/var/"
+	if len(sys.argv) != 3:
+		print("""Usages:	twiutil.py getUserMedia <screen_name>
+	twiutil.py search '<search_word>'""")
+		sys.exit()
 	if os.path.dirname(sys.argv[0]):
 		dir = os.path.dirname(sys.argv[0]) + "/"
 	else:
 		dir = os.getcwd() +"/"
 	secret = "secret.json"
-	
+
 	if os.path.exists(dir + secret) == False:
 		with open(dir + secret,"w") as f:
 			pass
 	with open(dir + secret) as f:
 		try:
 			secret = json.load(f)
+			CK = secret["CK"]
+			CS = secret["CS"]
+			AT = secret["AT"]
+			AS = secret["AS"]
 		except ValueError:
-			pass
-	CK = secret["CK"]
-	CS = secret["CS"]
-	AT = secret["AT"]
-	AS = secret["AS"]
-	
-	screen_name = ""
+			logger.debug("secret.json is not set. Please input key.")
+			while True:
+				print("Consumer api Key: ")
+				CK = input()
+				print("Consumer api Secret: ")
+				CS = input()
+				if CK and CS:
+					break
+				else:
+					print("please input keys")
+			print("Access Token(empty ok): ")
+			AT = input()
+			print("Access Secret(empty ok): ")
+			AS = input()
+
+	# ちょっとテスト用
+	screen_name = sys.argv[1]
+	if os.path.exists(dir + "save.json"):
+		with open(dir + "save.json") as save:
+			try:
+				save_data = json.load(save)
+			except ValueError:
+				save_data = []
+		for usr in save_data:
+			if usr["screen_name"] == screen_name:
+				AT = usr["oauth_token"]
+				AS = usr["oauth_token_secret"]
+
+	#screen_name = ""
 	user_id = ""
 	keyword = ""
 	JST = timezone(timedelta(hours=+9), 'JST')
-	
+
 	# インスタンス作成
 	getter = TwetterObj(CK, CS, AT, AS)
-	
+
 	# フォローしている人のMediaをDownload
-	if len(sys.argv) == 2:
-		screen_name = sys.argv[1]
+	'''
+	screen_name = sys.argv[2]
 	else:
 		logger.debug("please set screenname")
 		sys.exit()
@@ -504,13 +536,13 @@ def main():
 	if os.path.exists(dir + "save.json"):
 		with open(dir + "save.json") as save:
 			try:
-				save_data = json.load(save)	
+				save_data = json.load(save)
 			except ValueError:
 				save_data = []
 		for usr in save_data:
 			if usr["user_id"] == user_id:
-				AT = save_data["oauth_token"]
-				AS = save_data["oauth_token_secret"]
+				AT = usr["oauth_token"]
+				AS = usr["oauth_token_secret"]
 	download_dir = dir + screen_name + "/"
 	if os.path.exists(download_dir) == False:
 		os.makedirs(download_dir)
@@ -544,25 +576,44 @@ def main():
 		json_data[f["id"]] = max_id
 	with open(download_dir + "db.json", "w") as save:
 		json.dump(json_data,save)
-	
-	# キーワード検索してJSONに出力
 	'''
+
+	# キーワード画像検索してFAVRT/day
+	cnt = 0
+	keyword = sys.argv[2]
 	timer = datetime.now() + timedelta(minutes=55)
 	timer_sin = datetime.now().replace(hour=0,minute=0,second=0) - timedelta(days=1)
-	getter.checkKeyword(keyword, timer, timer_sin)
-	if getter.tl2json:
-		savefile = "/var/www/cgi-bin/log/" + datetime.now().strftime('%Y%m%d%H%M') + ".json"
-		fileopen = open(savefile,"w+")
-		json.dump(getter.tl2json,fileopen)
-	'''
-	
+	for tweet in getter.collect(keyword, total = 1000):
+		cnt += 1
+		unix_time = ((tweet['id'] >> 22) + 1288834974657) / 1000.0
+		ts = datetime.fromtimestamp(unix_time)
+		if timer_sin > ts:
+		       break
+		if "media" in tweet["entities"]:
+			getter.retweet(tweet['id'])
+			getter.favorites(tweet['id'])
+		if tweet["in_reply_to_status_id_str"]:
+			reptweet = getter.showStatus(tweet["in_reply_to_status_id_str"])
+			if "media" in reptweet["entities"]:
+				getter.retweet(reptweet['id'])
+				getter.favorites(reptweet['id'])
+		timer_now = datetime.now()
+		if timer > timer_now and 95 < cnt:
+			slt = timer - timer_now
+			time.sleep(slt.total_seconds())
+		elif timer < timer_now:
+			timer = timer_now + timedelta(minutes=55)
+			cnt = 0
+		else:
+			time.sleep(30)
+
 	# キーワード検索してMedia抽出
 	'''
 	for i in getter.searchKeyword(keyword):
 		for j in pickupMedia(i):
 			print(j)
 	'''
-	
+
 	# キーワード画像検索してFAVRT/day
 	'''
 	cnt = 0
@@ -589,7 +640,7 @@ def main():
 		else:
 			time.sleep(30)
 	'''
-	
+
 	# DM送る
 	'''
 	user_ids = []
@@ -601,7 +652,7 @@ def main():
 		for i in user_ids:
 			getter.messageSent(i, send_text)
 	'''
-	
+
 
 if __name__ == '__main__':
 	logger = logger()
@@ -611,19 +662,19 @@ else:
 	print("""class
 	TwetterObj(CK, CS, AT, AS)
 method
-	collect(total = -1, onlyText = False, includeRetweet = False)
-	checkLimit(arg1, arg2)	Get rate limits and usage applied to each Rest API endpoint
+	collect(keyword, total = -1, onlyText = False, includeRetweet = False)
+	checkLimit(arg1, arg2)  Get rate limits and usage applied to each Rest API endpoint
 	waitUntilReset(reset)
 	retweet(tweetId)
-	showStatus(tweetId)		Return statuses-show response.
-	getFollowList(screen_name)	Get follow "id" and "screen_name".
+	showStatus(tweetId)	     Return statuses-show response.
+	getFollowList(screen_name)      Get follow "id" and "screen_name".
 	showUser(screen_name = "", user_id = "")	Return user-show response.
-	checkKeyword(keyword, timer, timer_sin)		Append to self.tl2json list.
+	checkKeyword(keyword, timer, timer_sin)	 Append to self.tl2json list.
 	searchKeyword(keyword, total = 1000, onlyText = False, includeRetweet = False)
 		yield tweet.
 	messageSent(user_id, send_text)
 	checkTL(user_id, include_rts = False, since_id = "", max_id = "")
 function
-	pickupMedia(tweet)		Return ary, {"fn":FILENAME,"url":DL_URL}
+	pickupMedia(tweet)	      Return ary, {"fn":FILENAME,"url":DL_URL}
 	downloadMedia(DL_URL, FILEPATH, FILENAME)
 	logger()		logger.debug("log")""")
