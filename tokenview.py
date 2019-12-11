@@ -1,4 +1,4 @@
-#v.20191210.1
+#v.20191210.2
 import sys
 import json
 from requests_oauthlib import OAuth1Session
@@ -8,7 +8,8 @@ def TwitterOAuth(consumer_key, consumer_secret, oauth_token = None, oauth_verifi
 	twitter = OAuth1Session(consumer_key, consumer_secret, oauth_token, oauth_verifier)
 	return twitter
 
-def request_token(twitter, oauth_callback = "https://knowledgestack.dip.jp/pages/tokenview.php"):
+# callbackのURLを入れる
+def request_token(twitter, oauth_callback = "https://foo.var/tokenview.php"):
 	request_token_url = "https://api.twitter.com/oauth/request_token"
 	response = twitter.post(
 			request_token_url,
