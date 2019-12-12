@@ -1,8 +1,9 @@
-#v.20191211.3
+#v.20191213.0
 # -*- coding: utf-8 -*-
 
 from logging import getLogger, handlers, Formatter, StreamHandler, DEBUG
 from requests_oauthlib import OAuth1Session
+import argparse
 import json
 import time, sys, os
 from datetime import datetime, timedelta, timezone
@@ -122,7 +123,7 @@ class TwetterObj:
 	def waitUntilReset(self, reset):
 		seconds = reset - time.mktime(datetime.now().timetuple())
 		seconds = max(seconds, 0)
-		logger.debug("waiting" + seconds + "sec")
+		logger.debug("waiting" + str(seconds) + "sec")
 		sys.stdout.flush()
 		time.sleep(seconds + 10)  # 念のため + 10 秒
 
@@ -447,12 +448,23 @@ def logger():
 	logger.propagate = False
 	return logger
 
+def _parser():
+	parser = argparse.ArgumentParser(
+		usage="""twiutil.py getUserMedia --screen_name <screen_name>
+	twiutil.py searchMedia --keyword '<search_word>'
+	twiutil.py searchWordOnTL --screen_name <screen_name> --user_id <dstuser> --keyword '<search_word>'""",
+		add_help=True,
+		formatter_class=argparse.RawTextHelpFormatter
+	)
+	parser.add_argument("mode", help="", type=str, metavar="[mode]")
+	parser.add_argument("--screen_name", help="", type=str, metavar="<screen_name>")
+	parser.add_argument("--user_id", help="", type=str, metavar="<user_id>")
+	parser.add_argument("--keyword", help="", type=str, nargs='*', metavar="'<keyword>'")
+	return parser.parse_args()
+
 
 def main():
-	if len(sys.argv) != 3:
-		print("""Usages:	twiutil.py getUserMedia <screen_name>
-	twiutil.py search '<search_word>'""")
-		sys.exit()
+	cmd_args = _parser()
 	if os.path.dirname(sys.argv[0]):
 		dir = os.path.dirname(sys.argv[0]) + "/"
 	else:
@@ -486,7 +498,7 @@ def main():
 			AS = input()
 
 	# auth対策
-	screen_name = sys.argv[1]
+	screen_name = cmd_args.screen_name[0]
 	if os.path.exists(dir + "save.json"):
 		with open(dir + "save.json") as save:
 			try:
@@ -499,9 +511,10 @@ def main():
 				AS = usr["oauth_token_secret"]
 				user_id = usr["user_id"]
 
-	#screen_name = ""
-	user_id = ""
-	keyword = ""
+	screen_name = cmd_args.screen_name[0]
+	user_id = cmd_args.user_id[0]
+	keyword = cmd_args.keyword[0]
+	mode = cmd_args.mode[0]
 	JST = timezone(timedelta(hours=+9), 'JST')
 
 	# インスタンス作成
@@ -509,104 +522,104 @@ def main():
 
 	# フォローしている人のMediaをDownload
 	'''
-	screen_name = sys.argv[2]
-	else:
-		logger.debug("please set screenname")
-		sys.exit()
-	user_id = getter.showUser(screen_name)["id"]
-	download_dir = dir + screen_name + "/"
-	if os.path.exists(download_dir) == False:
-		os.makedirs(download_dir)
-	if os.path.exists(download_dir + "db.json") == False:
+	if mode == "getUserMedia":
+		user_id = getter.showUser(screen_name)["id"]
+		download_dir = dir + screen_name + "/"
+		if os.path.exists(download_dir) == False:
+			os.makedirs(download_dir)
+		if os.path.exists(download_dir + "db.json") == False:
+			with open(download_dir + "db.json", "w") as save:
+				pass
+		with open(download_dir + "db.json", "r") as db:
+			try:
+				json_data = json.load(db)
+			except ValueError:
+				json_data = {}
+		flist_res = getter.getFollowList(screen_name)
+		for f in flist_res:
+			FILEPATH = download_dir + f["screen_name"] + "/"
+			if os.path.exists(FILEPATH) == False:
+				os.makedirs(FILEPATH)
+			last_id = max_id = ""
+			if f["id"] in json_data:
+				last_id = json_data[f["id"]]
+			for twi in getter.checkTL(user_id = f["id"]):
+				#def checkTL(self, user_id, include_rts = False, since_id = "", max_id = ""):
+				if not max_id:
+					max_id = twi["id"]
+				if last_id == twi["id"]
+					break
+				ARY = pickupMedia(twi)
+				if ARY is None:
+					continue
+				for content in ARY:
+					downloadMedia(content["url"], FILEPATH, content["fn"])
+			json_data[f["id"]] = max_id
 		with open(download_dir + "db.json", "w") as save:
-			pass
-	with open(download_dir + "db.json", "r") as db:
-		try:
-			json_data = json.load(db)
-		except ValueError:
-			json_data = {}
-	flist_res = getter.getFollowList(screen_name)
-	for f in flist_res:
-		FILEPATH = download_dir + f["screen_name"] + "/"
-		if os.path.exists(FILEPATH) == False:
-			os.makedirs(FILEPATH)
-		last_id = max_id = ""
-		if f["id"] in json_data:
-			last_id = json_data[f["id"]]
-		for twi in getter.checkTL(user_id = f["id"]):
-			#def checkTL(self, user_id, include_rts = False, since_id = "", max_id = ""):
-			if not max_id:
-				max_id = twi["id"]
-			if last_id == twi["id"]
-				break
-			ARY = pickupMedia(twi)
-			if ARY is None:
-				continue
-			for content in ARY:
-				downloadMedia(content["url"], FILEPATH, content["fn"])
-		json_data[f["id"]] = max_id
-	with open(download_dir + "db.json", "w") as save:
-		json.dump(json_data,save)
+			json.dump(json_data,save)
 	'''
 	
 	# keyword検索に対しフォローユーザがツイートしているか確認
-	flist_res = getter.getFollowList(screen_name)
-	flist = []
-	for f in flist_res:
-		flist.append(f["id"])
-	keyword = ""
-	text_msg = ""
-	timer = datetime.now() + timedelta(minutes=55)
-	timer_sin = datetime.now().replace(hour=0,minute=0,second=0) - timedelta(days=1)
-	for tweet in getter.collect(keyword, total = 1000):
-		cnt += 1
-		unix_time = ((tweet['id'] >> 22) + 1288834974657) / 1000.0
-		ts = datetime.fromtimestamp(unix_time)
-		if timer_sin > ts:
-		       break
-		if tweet['user']['id'] in flist:
-			text_msg = text_msg + "https://twitter.com/" + tweet['user']['screen'] + "/status/" + str(tweet['id']) +"\n"
-		timer_now = datetime.now()
-		if timer > timer_now and 95 < cnt:
-			slt = timer - timer_now
-			time.sleep(slt.total_seconds())
-		elif timer < timer_now:
-			timer = timer_now + timedelta(minutes=55)
-			cnt = 0
-		else:
-			time.sleep(30)
-	if text_msg:
-		getter.messageSent(i, send_text)
+	if mode == "searchWordOnTL":
+		flist_res = getter.getFollowList(screen_name)
+		flist = []
+		for f in flist_res:
+			flist.append(f["id"])
+		text_msg = ""
+		cnt = ""
+		timer = datetime.now() + timedelta(minutes=55)
+		#timer_sin = datetime.now().replace(hour=0,minute=0,second=0) - timedelta(days=1)
+		timer_sin = datetime.now().replace(hour=0,minute=0,second=0) - timedelta(days=14)
+		for tweet in getter.collect(keyword, total = 1000):
+			cnt += 1
+			unix_time = ((tweet['id'] >> 22) + 1288834974657) / 1000.0
+			ts = datetime.fromtimestamp(unix_time)
+			if timer_sin > ts:
+			       break
+			if tweet['user']['id'] in flist:
+				text_msg = text_msg + "https://twitter.com/" + tweet['user']['screen'] + "/status/" + str(tweet['id']) +"\n"
+			timer_now = datetime.now()
+			if timer > timer_now and 95 < cnt:
+				slt = timer - timer_now
+				time.sleep(slt.total_seconds())
+			elif timer < timer_now:
+				timer = timer_now + timedelta(minutes=55)
+				cnt = 0
+			else:
+				time.sleep(30)
+		if text_msg:
+			getter.messageSent(user_id, send_text)
 	
 	# キーワード画像検索してFAVRT/day
 	'''
-	cnt = 0
-	keyword = sys.argv[2]
-	timer = datetime.now() + timedelta(minutes=55)
-	timer_sin = datetime.now().replace(hour=0,minute=0,second=0) - timedelta(days=1)
-	for tweet in getter.collect(keyword, total = 1000):
-		cnt += 1
-		unix_time = ((tweet['id'] >> 22) + 1288834974657) / 1000.0
-		ts = datetime.fromtimestamp(unix_time)
-		if timer_sin > ts:
-		       break
-		if "media" in tweet["entities"]:
-			getter.retweet(tweet['id'])
-			getter.favorites(tweet['id'])
-		if tweet["in_reply_to_status_id_str"]:
-			reptweet = getter.showStatus(tweet["in_reply_to_status_id_str"])
-			if "media" in reptweet["entities"]:
-				getter.retweet(reptweet['id'])
-				getter.favorites(reptweet['id'])
-		timer_now = datetime.now()
-		if timer > timer_now and 95 < cnt:
-			slt = timer - timer_now
-			time.sleep(slt.total_seconds())
-		elif timer < timer_now:
-			timer = timer_now + timedelta(minutes=55)
-			cnt = 0
-		else:
-			time.sleep(30)
+	if mode == "searchMedia":
+		cnt = 0
+		keyword = sys.argv[2]
+		timer = datetime.now() + timedelta(minutes=55)
+		timer_sin = datetime.now().replace(hour=0,minute=0,second=0) - timedelta(days=1)
+		for tweet in getter.collect(keyword, total = 1000):
+			cnt += 1
+			unix_time = ((tweet['id'] >> 22) + 1288834974657) / 1000.0
+			ts = datetime.fromtimestamp(unix_time)
+			if timer_sin > ts:
+			       break
+			if "media" in tweet["entities"]:
+				getter.retweet(tweet['id'])
+				getter.favorites(tweet['id'])
+			if tweet["in_reply_to_status_id_str"]:
+				reptweet = getter.showStatus(tweet["in_reply_to_status_id_str"])
+				if "media" in reptweet["entities"]:
+					getter.retweet(reptweet['id'])
+					getter.favorites(reptweet['id'])
+			timer_now = datetime.now()
+			if timer > timer_now and 95 < cnt:
+				slt = timer - timer_now
+				time.sleep(slt.total_seconds())
+			elif timer < timer_now:
+				timer = timer_now + timedelta(minutes=55)
+				cnt = 0
+			else:
+				time.sleep(30)
 	'''
 
 	# キーワード検索してMedia抽出
