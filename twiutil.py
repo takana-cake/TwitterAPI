@@ -566,7 +566,7 @@ def main():
 		for f in flist_res:
 			flist.append(f["id"])
 		text_msg = ""
-		cnt = ""
+		cnt = 0
 		timer = datetime.now() + timedelta(minutes=55)
 		#timer_sin = datetime.now().replace(hour=0,minute=0,second=0) - timedelta(days=1)
 		timer_sin = datetime.now().replace(hour=0,minute=0,second=0) - timedelta(days=14)
