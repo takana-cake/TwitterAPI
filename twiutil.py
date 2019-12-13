@@ -1,4 +1,4 @@
-#v.20191213.3
+#v.20191213.4
 # -*- coding: utf-8 -*-
 
 from logging import getLogger, handlers, Formatter, StreamHandler, DEBUG
@@ -214,19 +214,19 @@ class TwetterObj:
 			try:
 				res = self.session.get(url_flist, params = params)
 			except ConnectionError as e:
-				logger.debug("ConnectionError:" + str(e))
+				logger.debug("[getFollowList]" + "ConnectionError:" + str(e))
 				time.sleep(60)
 				continue
 			if res.status_code == 503:
 				# 503 : Service Unavailable
 				if unavailableCnt > 10:
-					logger.debug(self.screen + str(res.status_code) + res.text)
+					logger.debug("[getFollowList]" + self.screen + str(res.status_code) + res.text)
 					break
 				unavailableCnt += 1
 				self.waitUntilReset(time.mktime(datetime.now().timetuple()) + 30)
 				continue
 			if res.status_code != 200:
-				logger.debug(self.screen + str(res.status_code) + res.text)
+				logger.debug("[getFollowList]" + self.screen + str(res.status_code) + res.text)
 				self.checkLimit("friends", "/friends/list")
 				if unavailableCnt > 10:
 					break
@@ -464,7 +464,6 @@ def _parser():
 
 
 def _main():
-	cmd_args = _parser()
 	if os.path.dirname(sys.argv[0]):
 		dir = os.path.dirname(sys.argv[0]) + "/"
 	else:
@@ -497,8 +496,13 @@ def _main():
 			print("Access Secret(empty ok): ")
 			AS = input()
 
+	cmd_args = _parser()
+	screen_name = cmd_args.screen_name
+	user_id = cmd_args.user_id
+	keyword = cmd_args.keyword[0]
+	mode = cmd_args.mode
+	JST = timezone(timedelta(hours=+9), 'JST')
 	# auth対策
-	screen_name = cmd_args.screen_name[0]
 	if os.path.exists(dir + "save.json"):
 		with open(dir + "save.json") as save:
 			try:
@@ -509,17 +513,10 @@ def _main():
 			if usr["screen_name"] == screen_name:
 				AT = usr["oauth_token"]
 				AS = usr["oauth_token_secret"]
-				user_id = usr["user_id"]
-
-	screen_name = cmd_args.screen_name[0]
-	user_id = cmd_args.user_id
-	keyword = cmd_args.keyword[0]
-	mode = cmd_args.mode
-	JST = timezone(timedelta(hours=+9), 'JST')
-	logger.debug(mode + screen_name + str(user_id) + keyword)
 
 	# インスタンス作成
 	getter = TwetterObj(CK, CS, AT, AS)
+	logger.debug("mode:" + mode + ", screen_name:" + screen_name)
 
 	# フォローしている人のMediaをDownload
 	if mode == "getUserMedia":
