@@ -1,4 +1,4 @@
-#v.20191213.0
+#v.20191213.1
 # -*- coding: utf-8 -*-
 
 from logging import getLogger, handlers, Formatter, StreamHandler, DEBUG
@@ -281,7 +281,7 @@ class TwetterObj:
 		for tweet in self.collect(keyword, total, onlyText, includeRetweet):
 			yield tweet
 
-	def messageSent(self, send2id, send_text):
+	def messageSent(self, send2id, text_msg):
 		self.send2id = send2id
 		url_msg = 'https://api.twitter.com/1.1/direct_messages/events/new.json'
 		headers = {'content-type': 'application/json'}
@@ -289,7 +289,7 @@ class TwetterObj:
 			{"type": "message_create",
 			"message_create": {
 				"target": {"recipient_id": self.send2id},
-				"message_data": {"text": send_text,}
+				"message_data": {"text": text_msg,}
 			}}}
 		payload = json.dumps(payload)
 		unavailableCnt = 0
@@ -576,8 +576,8 @@ def main():
 			ts = datetime.fromtimestamp(unix_time)
 			if timer_sin > ts:
 			       break
-			if tweet['user']['id'] in flist:
-				text_msg = text_msg + "https://twitter.com/" + tweet['user']['screen'] + "/status/" + str(tweet['id']) +"\n"
+			if str(tweet['user']['id']) in flist:
+				text_msg = text_msg + "https://twitter.com/" + tweet['user']['screen_name'] + "/status/" + str(tweet['id']) +"\n"
 			timer_now = datetime.now()
 			if timer > timer_now and 95 < cnt:
 				slt = timer - timer_now
@@ -588,7 +588,7 @@ def main():
 			else:
 				time.sleep(30)
 		if text_msg:
-			getter.messageSent(user_id, send_text)
+			getter.messageSent(user_id, text_msg)
 	
 	# キーワード画像検索してFAVRT/day
 	'''
