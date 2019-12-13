@@ -1,4 +1,4 @@
-#v.20191213.2
+#v.20191213.3
 # -*- coding: utf-8 -*-
 
 from logging import getLogger, handlers, Formatter, StreamHandler, DEBUG
@@ -547,7 +547,7 @@ def main():
 				#def checkTL(self, user_id, include_rts = False, since_id = "", max_id = ""):
 				if not max_id:
 					max_id = twi["id"]
-				if last_id == twi["id"]
+				if last_id == twi["id"]:
 					break
 				ARY = pickupMedia(twi)
 				if ARY is None:
