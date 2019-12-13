@@ -1,4 +1,4 @@
-#v.20191213.1
+#v.20191213.2
 # -*- coding: utf-8 -*-
 
 from logging import getLogger, handlers, Formatter, StreamHandler, DEBUG
@@ -451,14 +451,14 @@ def logger():
 def _parser():
 	parser = argparse.ArgumentParser(
 		usage="""twiutil.py getUserMedia --screen_name <screen_name>
-	twiutil.py searchMedia --keyword '<search_word>'
+	twiutil.py MediaFavRt --screen_name <screen_name> --keyword '<search_word>'
 	twiutil.py searchWordOnTL --screen_name <screen_name> --user_id <dstuser> --keyword '<search_word>'""",
 		add_help=True,
 		formatter_class=argparse.RawTextHelpFormatter
 	)
 	parser.add_argument("mode", help="", type=str, metavar="[mode]")
 	parser.add_argument("--screen_name", help="", type=str, metavar="<screen_name>")
-	parser.add_argument("--user_id", help="", type=str, metavar="<user_id>")
+	parser.add_argument("--user_id", help="", type=int, metavar="<user_id>")
 	parser.add_argument("--keyword", help="", type=str, nargs='*', metavar="'<keyword>'")
 	return parser.parse_args()
 
@@ -512,16 +512,16 @@ def main():
 				user_id = usr["user_id"]
 
 	screen_name = cmd_args.screen_name[0]
-	user_id = cmd_args.user_id[0]
+	user_id = cmd_args.user_id
 	keyword = cmd_args.keyword[0]
-	mode = cmd_args.mode[0]
+	mode = cmd_args.mode
 	JST = timezone(timedelta(hours=+9), 'JST')
+	logger.debug(mode + screen_name + str(user_id) + keyword)
 
 	# インスタンス作成
 	getter = TwetterObj(CK, CS, AT, AS)
 
 	# フォローしている人のMediaをDownload
-	'''
 	if mode == "getUserMedia":
 		user_id = getter.showUser(screen_name)["id"]
 		download_dir = dir + screen_name + "/"
@@ -557,7 +557,6 @@ def main():
 			json_data[f["id"]] = max_id
 		with open(download_dir + "db.json", "w") as save:
 			json.dump(json_data,save)
-	'''
 	
 	# keyword検索に対しフォローユーザがツイートしているか確認
 	if mode == "searchWordOnTL":
@@ -568,8 +567,7 @@ def main():
 		text_msg = ""
 		cnt = 0
 		timer = datetime.now() + timedelta(minutes=55)
-		#timer_sin = datetime.now().replace(hour=0,minute=0,second=0) - timedelta(days=1)
-		timer_sin = datetime.now().replace(hour=0,minute=0,second=0) - timedelta(days=14)
+		timer_sin = datetime.now().replace(hour=0,minute=0,second=0) - timedelta(days=1)
 		for tweet in getter.collect(keyword, total = 1000):
 			cnt += 1
 			unix_time = ((tweet['id'] >> 22) + 1288834974657) / 1000.0
@@ -591,10 +589,8 @@ def main():
 			getter.messageSent(user_id, text_msg)
 	
 	# キーワード画像検索してFAVRT/day
-	'''
-	if mode == "searchMedia":
+	if mode == "MediaFavRt":
 		cnt = 0
-		keyword = sys.argv[2]
 		timer = datetime.now() + timedelta(minutes=55)
 		timer_sin = datetime.now().replace(hour=0,minute=0,second=0) - timedelta(days=1)
 		for tweet in getter.collect(keyword, total = 1000):
@@ -620,7 +616,6 @@ def main():
 				cnt = 0
 			else:
 				time.sleep(30)
-	'''
 
 	# キーワード検索してMedia抽出
 	'''
