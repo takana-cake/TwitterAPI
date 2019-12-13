@@ -434,7 +434,7 @@ def downloadMedia(DL_URL, FILEPATH, FILENAME):
 				continue
 		break
 
-def logger():
+def _logger():
 	logger = getLogger(__name__)
 	logger.setLevel(DEBUG)
 	formatter = Formatter("[%(asctime)s] [%(process)d] [%(name)s] [%(levelname)s] %(message)s")
@@ -463,7 +463,7 @@ def _parser():
 	return parser.parse_args()
 
 
-def main():
+def _main():
 	cmd_args = _parser()
 	if os.path.dirname(sys.argv[0]):
 		dir = os.path.dirname(sys.argv[0]) + "/"
@@ -638,10 +638,10 @@ def main():
 
 
 if __name__ == '__main__':
-	logger = logger()
-	main()
+	logger = _logger()
+	_main()
 else:
-	logger = logger()
+	logger = _logger()
 	print("""class
 	TwetterObj(CK, CS, AT, AS)
 method
