@@ -1,25 +1,28 @@
-#v.20191213.4
+#v.20191215.1
 # -*- coding: utf-8 -*-
 
 from logging import getLogger, handlers, Formatter, StreamHandler, DEBUG
 from requests_oauthlib import OAuth1Session
 import argparse
 import json
-import time, sys, os
+import time, sys, os, re
 from datetime import datetime, timedelta, timezone
 from requests.exceptions import ConnectionError
 import urllib.request
 
 class TwetterObj:
-	def __init__(self, CK, CS, AT = "", AS = ""):
+	def __init__(self, CK, CS, AT, AS):
 		self.session = OAuth1Session(CK, CS, AT, AS)
 
-	def collect(self, keyword, total = -1, onlyText = False, includeRetweet = False):
+	def collect(self, keyword, fullText = False, total = -1, onlyText = False, includeRetweet = False):
 		#----------------
 		# URL、パラメータ
 		#----------------
 		url_search = 'https://api.twitter.com/1.1/search/tweets.json'
-		params = {'q':keyword, 'count':100,'result_type':'mixed'}
+		if fullText is True:
+			params = {'q':keyword, 'count':100,'result_type':'recent', "tweet_mode" : "extended"}
+		else:
+			params = {'q':keyword, 'count':100,'result_type':'recent'}
 		params['include_rts'] = str(includeRetweet).lower()
 		# include_rts は statuses/user_timeline のパラメータ。search/tweets には無効
 
@@ -450,16 +453,18 @@ def _logger():
 
 def _parser():
 	parser = argparse.ArgumentParser(
-		usage="""twiutil.py getUserMedia --screen_name <screen_name>
-	twiutil.py MediaFavRt --screen_name <screen_name> --keyword '<search_word>'
-	twiutil.py searchWordOnTL --screen_name <screen_name> --user_id <dstuser> --keyword '<search_word>'""",
+		usage="""twiutil.py getUserMedia [screen_name]
+	twiutil.py MediaFavRt [screen_name] --keyword '<search_word>'
+	twiutil.py searchWordOnTL [screen_name] --user_id <dstuser> --keyword '<search_word>'
+	twiutil.py searchWord2Json [screen_name] --keyword '<search_word> --output <output_file>'""",
 		add_help=True,
 		formatter_class=argparse.RawTextHelpFormatter
 	)
 	parser.add_argument("mode", help="", type=str, metavar="[mode]")
-	parser.add_argument("--screen_name", help="", type=str, metavar="<screen_name>")
+	parser.add_argument("screen_name", help="", type=str, metavar="[screen_name]")
 	parser.add_argument("--user_id", help="", type=int, metavar="<user_id>")
 	parser.add_argument("--keyword", help="", type=str, nargs='*', metavar="'<keyword>'")
+	parser.add_argument("--output", help="", type=str, metavar="'<output_file>'")
 	return parser.parse_args()
 
 
@@ -468,8 +473,8 @@ def _main():
 		dir = os.path.dirname(sys.argv[0]) + "/"
 	else:
 		dir = os.getcwd() +"/"
+	
 	secret = "secret.json"
-
 	if os.path.exists(dir + secret) == False:
 		with open(dir + secret,"w") as f:
 			pass
@@ -478,8 +483,6 @@ def _main():
 			secret = json.load(f)
 			CK = secret["CK"]
 			CS = secret["CS"]
-			AT = secret["AT"]
-			AS = secret["AS"]
 		except ValueError:
 			logger.debug("secret.json is not set. Please input key.")
 			while True:
@@ -491,18 +494,12 @@ def _main():
 					break
 				else:
 					print("please input keys")
-			print("Access Token(empty ok): ")
-			AT = input()
-			print("Access Secret(empty ok): ")
-			AS = input()
-
+	
 	cmd_args = _parser()
-	screen_name = cmd_args.screen_name
-	user_id = cmd_args.user_id
-	keyword = cmd_args.keyword[0]
 	mode = cmd_args.mode
 	JST = timezone(timedelta(hours=+9), 'JST')
 	# auth対策
+	screen_name = cmd_args.screen_name
 	if os.path.exists(dir + "save.json"):
 		with open(dir + "save.json") as save:
 			try:
@@ -513,13 +510,24 @@ def _main():
 			if usr["screen_name"] == screen_name:
 				AT = usr["oauth_token"]
 				AS = usr["oauth_token_secret"]
-
+	if cmd_args.user_id:
+		user_id = cmd_args.user_id
+	if cmd_args.keyword[0]:
+		keyword = cmd_args.keyword[0]
+	if cmd_args.output:
+		output = cmd_args.output
+		if not os.path.dirname(output):
+			raise Exception('Filedir not exists.')
+	
 	# インスタンス作成
 	getter = TwetterObj(CK, CS, AT, AS)
-	logger.debug("mode:" + mode + ", screen_name:" + screen_name)
+	logger.debug("mode:" + mode)
 
 	# フォローしている人のMediaをDownload
 	if mode == "getUserMedia":
+		if not cmd_args.screen_name:
+			raise Exception('Not set screen_name')
+		screen_name = cmd_args.screen_name
 		user_id = getter.showUser(screen_name)["id"]
 		download_dir = dir + screen_name + "/"
 		if os.path.exists(download_dir) == False:
@@ -557,6 +565,8 @@ def _main():
 	
 	# keyword検索に対しフォローユーザがツイートしているか確認
 	if mode == "searchWordOnTL":
+		if not (screen_name or keyword or user_id):
+			raise Exception('Not set screen_name or keyword or user_id')
 		flist_res = getter.getFollowList(screen_name)
 		flist = []
 		for f in flist_res:
@@ -564,14 +574,14 @@ def _main():
 		text_msg = ""
 		cnt = 0
 		timer = datetime.now() + timedelta(minutes=55)
-		timer_sin = datetime.now().replace(hour=0,minute=0,second=0) - timedelta(days=1)
+		timer_sin = datetime.now().replace(minute=0,second=0) - timedelta(hours=6)
 		for tweet in getter.collect(keyword, total = 1000):
 			cnt += 1
 			unix_time = ((tweet['id'] >> 22) + 1288834974657) / 1000.0
 			ts = datetime.fromtimestamp(unix_time)
 			if timer_sin > ts:
 			       break
-			if str(tweet['user']['id']) in flist:
+			if tweet['user']['id'] in flist:
 				text_msg = text_msg + "https://twitter.com/" + tweet['user']['screen_name'] + "/status/" + str(tweet['id']) +"\n"
 			timer_now = datetime.now()
 			if timer > timer_now and 95 < cnt:
@@ -587,6 +597,8 @@ def _main():
 	
 	# キーワード画像検索してFAVRT/day
 	if mode == "MediaFavRt":
+		if not (screen_name or keyword):
+			raise Exception('Not set screen_name or keyword')
 		cnt = 0
 		timer = datetime.now() + timedelta(minutes=55)
 		timer_sin = datetime.now().replace(hour=0,minute=0,second=0) - timedelta(days=1)
@@ -614,6 +626,29 @@ def _main():
 			else:
 				time.sleep(30)
 
+	# キーワード検索してjsonへ保存
+	if mode == "searchWord2Json":
+		if not (keyword or output):
+			raise Exception('Not set keyword or output_file')
+		json_sw = []
+		cnt = 0
+		timer = datetime.now() + timedelta(minutes=55)
+		for tweet in getter.collect(keyword, fullText = True, total = 1000):
+			cnt += 1
+			json_sw.append({"name":tweet['user']['name'], "text":tweet["full_text"], "id":tweet['id']})
+			timer_now = datetime.now()
+			if timer > timer_now and 95 < cnt:
+				slt = timer - timer_now
+				time.sleep(slt.total_seconds())
+			elif timer < timer_now:
+				timer = timer_now + timedelta(minutes=55)
+				cnt = 0
+			else:
+				time.sleep(30)
+		#filename = dir + re.sub(re.compile("[!-/:-@[-`{-~]"), '', keyword) + ".json"
+		with open(output, "w") as save:
+			json.dump(json_sw,save)
+	
 	# キーワード検索してMedia抽出
 	'''
 	for i in getter.searchKeyword(keyword):
@@ -642,7 +677,7 @@ else:
 	print("""class
 	TwetterObj(CK, CS, AT, AS)
 method
-	collect(keyword, total = -1, onlyText = False, includeRetweet = False)
+	collect(keyword, fullText = False, total = -1, onlyText = False, includeRetweet = False)
 	checkLimit(arg1, arg2)  Get rate limits and usage applied to each Rest API endpoint
 	waitUntilReset(reset)
 	retweet(tweetId)
