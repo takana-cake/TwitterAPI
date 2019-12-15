@@ -1,4 +1,4 @@
-#v.20191216.0
+#v.20191216.1
 # -*- coding: utf-8 -*-
 
 from logging import getLogger, handlers, Formatter, StreamHandler, DEBUG
@@ -453,15 +453,18 @@ def _logger():
 
 def _parser():
 	parser = argparse.ArgumentParser(
-		usage="""twiutil.py getUserMedia [screen_name]
-	twiutil.py MediaFavRt [screen_name] --keyword '<search_word>'
-	twiutil.py searchWordOnTL [screen_name] --user_id <dstuser> --keyword '<search_word>'
-	twiutil.py searchWord2Json [screen_name] --keyword '<search_word> --output <output_file>'""",
+		usage="""	python3 twiutil.py getUserMedia [auth_screen_name] --screen_name <screen_name>
+	python3 twiutil.py MediaFavRt [auth_screen_name] --keyword '<search_word>'
+	python3 twiutil.py searchWordOnTL [auth_screen_name] --user_id <dstuser> --keyword '<search_word>'
+	python3 twiutil.py searchWord2Json [auth_screen_name] --keyword '<search_word>' --output <output_file>
+	python3 twiutil.py searchWordGetMedia [auth_screen_name] --keyword '<search_word>'
+	python3 twiutil.py getMediaOnScreen [auth_screen_name] --screen_name <screen_name>""",
 		add_help=True,
 		formatter_class=argparse.RawTextHelpFormatter
 	)
 	parser.add_argument("mode", help="", type=str, metavar="[mode]")
-	parser.add_argument("screen_name", help="", type=str, metavar="[screen_name]")
+	parser.add_argument("auth", help="", type=str, metavar="[screen_name]")
+	parser.add_argument("--screen_name", help="", type=str, metavar="<screen_name>")
 	parser.add_argument("--user_id", help="", type=int, metavar="<user_id>")
 	parser.add_argument("--keyword", help="", type=str, nargs='*', metavar="'<keyword>'")
 	parser.add_argument("--output", help="", type=str, metavar="'<output_file>'")
@@ -516,10 +519,14 @@ def _main():
 					print("please input keys")
 	
 	cmd_args = _parser()
-	mode = cmd_args.mode
+	try:
+		mode = cmd_args.mode
+		auth_screen = cmd_args.auth
+	except Exception as e:
+		logger.debug(str(e))
+		sys.exit()
 	JST = timezone(timedelta(hours=+9), 'JST')
 	# auth対策
-	screen_name = cmd_args.screen_name
 	if os.path.exists(dir + "save.json"):
 		with open(dir + "save.json") as save:
 			try:
@@ -527,9 +534,11 @@ def _main():
 			except ValueError:
 				save_data = []
 		for usr in save_data:
-			if usr["screen_name"] == screen_name:
+			if usr["screen_name"] == auth_screen:
 				AT = usr["oauth_token"]
 				AS = usr["oauth_token_secret"]
+	if cmd_args.screen_name:
+		screen_name = cmd_args.screen_name
 	if cmd_args.user_id:
 		user_id = cmd_args.user_id
 	if cmd_args.keyword[0]:
@@ -547,7 +556,6 @@ def _main():
 	if mode == "getUserMedia":
 		if not cmd_args.screen_name:
 			raise Exception('Not set screen_name')
-		screen_name = cmd_args.screen_name
 		user_id = getter.showUser(screen_name)["id"]
 		download_dir = dir + screen_name + "/"
 		if os.path.exists(download_dir) == False:
@@ -670,12 +678,55 @@ def _main():
 			json.dump(json_sw,save)
 	
 	# キーワード検索してMedia抽出
-	'''
-	for i in getter.searchKeyword(keyword):
-		for j in pickupMedia(i):
-			print(j)
-	'''
-
+	if mode == "searchWordGetMedia":
+		if not (keyword):
+			raise Exception('Not set keyword')
+		FILEPATH = dir + re.sub(re.compile("[!-/:-@[-`{-~]"), '', keyword) + "/"
+		keyword = keyword + " filter:media"
+		if os.path.exists(FILEPATH) == False:
+			os.makedirs(FILEPATH)
+		for i in getter.searchKeyword(keyword):
+			ARY = pickupMedia(i)
+			if ARY is None:
+				continue
+			for j in ARY:
+				if j:
+					downloadMedia(j["url"], FILEPATH, j["fn"])
+	
+	
+	# フォローしている人のMediaをDownload
+	if mode == "getMediaOnScreen":
+		if not cmd_args.screen_name:
+			raise Exception('Not set screen_name')
+		FILEPATH = dir + screen_name + "/"
+		if os.path.exists(FILEPATH) == False:
+			os.makedirs(FILEPATH)
+		if os.path.exists(FILEPATH + "db.json") == False:
+			with open(FILEPATH + "db.json", "w") as save:
+				pass
+		with open(FILEPATH + "db.json", "r") as db:
+			try:
+				json_data = json.load(db)
+			except ValueError:
+				json_data = {}
+		last_id = max_id = ""
+		if "last_id" in json_data:
+			last_id = json_data["last_id"]
+		user_id = getter.showUser(screen_name)["id"]
+		for twi in getter.checkTL("user_id" = user_id):
+			if not max_id:
+				max_id = twi["id"]
+			if last_id == twi["id"]:
+				break
+			ARY = pickupMedia(twi)
+			if ARY is None:
+				continue
+			for content in ARY:
+				downloadMedia(content["url"], FILEPATH, content["fn"])
+		json_data["last_id"] = max_id
+		with open(download_dir + "db.json", "w") as save:
+			json.dump(json_data,save)
+	
 	# DM送る
 	'''
 	user_ids = []
