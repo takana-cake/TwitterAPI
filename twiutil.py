@@ -1,4 +1,4 @@
-#v.20191215.1
+#v.20191216.0
 # -*- coding: utf-8 -*-
 
 from logging import getLogger, handlers, Formatter, StreamHandler, DEBUG
@@ -467,6 +467,26 @@ def _parser():
 	parser.add_argument("--output", help="", type=str, metavar="'<output_file>'")
 	return parser.parse_args()
 
+def help():
+	print("""class
+	TwetterObj(CK, CS, AT, AS)
+method
+	collect(keyword, fullText = False, total = -1, onlyText = False, includeRetweet = False)
+	checkLimit(arg1, arg2)  Get rate limits and usage applied to each Rest API endpoint
+	waitUntilReset(reset)
+	retweet(tweetId)
+	favorites(tweetId)
+	showStatus(tweetId)	     Return statuses-show response.
+	getFollowList(screen_name)      Get follow "id" and "screen_name".
+	showUser(screen_name = "", user_id = "")	Return user-show response.
+	checkKeyword(keyword, timer, timer_sin)	 Append to self.tl2json list.
+	searchKeyword(keyword, total = 1000, onlyText = False, includeRetweet = False)
+		yield tweet.
+	messageSent(user_id, send_text)
+	checkTL(user_id, include_rts = False, since_id = "", max_id = "")
+function
+	pickupMedia(tweet)	      Return ary, {"fn":FILENAME,"url":DL_URL}
+	downloadMedia(DL_URL, FILEPATH, FILENAME)""")
 
 def _main():
 	if os.path.dirname(sys.argv[0]):
@@ -674,23 +694,4 @@ if __name__ == '__main__':
 	_main()
 else:
 	logger = _logger()
-	print("""class
-	TwetterObj(CK, CS, AT, AS)
-method
-	collect(keyword, fullText = False, total = -1, onlyText = False, includeRetweet = False)
-	checkLimit(arg1, arg2)  Get rate limits and usage applied to each Rest API endpoint
-	waitUntilReset(reset)
-	retweet(tweetId)
-	favorites(tweetId)
-	showStatus(tweetId)	     Return statuses-show response.
-	getFollowList(screen_name)      Get follow "id" and "screen_name".
-	showUser(screen_name = "", user_id = "")	Return user-show response.
-	checkKeyword(keyword, timer, timer_sin)	 Append to self.tl2json list.
-	searchKeyword(keyword, total = 1000, onlyText = False, includeRetweet = False)
-		yield tweet.
-	messageSent(user_id, send_text)
-	checkTL(user_id, include_rts = False, since_id = "", max_id = "")
-function
-	pickupMedia(tweet)	      Return ary, {"fn":FILENAME,"url":DL_URL}
-	downloadMedia(DL_URL, FILEPATH, FILENAME)
-	logger()		logger.debug("log")""")
+	help()
