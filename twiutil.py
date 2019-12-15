@@ -1,4 +1,4 @@
-#v.20191216.1
+#v.20191216.2
 # -*- coding: utf-8 -*-
 
 from logging import getLogger, handlers, Formatter, StreamHandler, DEBUG
@@ -455,7 +455,7 @@ def _parser():
 	parser = argparse.ArgumentParser(
 		usage="""	python3 twiutil.py getUserMedia [auth_screen_name] --screen_name <screen_name>
 	python3 twiutil.py MediaFavRt [auth_screen_name] --keyword '<search_word>'
-	python3 twiutil.py searchWordOnTL [auth_screen_name] --user_id <dstuser> --keyword '<search_word>'
+	python3 twiutil.py searchWordOnTL [auth_screen_name] --screen_name <screen_name> --user_id <dstuser> --keyword '<search_word>'
 	python3 twiutil.py searchWord2Json [auth_screen_name] --keyword '<search_word>' --output <output_file>
 	python3 twiutil.py searchWordGetMedia [auth_screen_name] --keyword '<search_word>'
 	python3 twiutil.py getMediaOnScreen [auth_screen_name] --screen_name <screen_name>""",
@@ -577,7 +577,6 @@ def _main():
 			if f["id"] in json_data:
 				last_id = json_data[f["id"]]
 			for twi in getter.checkTL(user_id = f["id"]):
-				#def checkTL(self, user_id, include_rts = False, since_id = "", max_id = ""):
 				if not max_id:
 					max_id = twi["id"]
 				if last_id == twi["id"]:
@@ -713,7 +712,7 @@ def _main():
 		if "last_id" in json_data:
 			last_id = json_data["last_id"]
 		user_id = getter.showUser(screen_name)["id"]
-		for twi in getter.checkTL("user_id" = user_id):
+		for twi in getter.checkTL(user_id = user_id):
 			if not max_id:
 				max_id = twi["id"]
 			if last_id == twi["id"]:
