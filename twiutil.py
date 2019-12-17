@@ -1,4 +1,4 @@
-#v.20191216.2
+#v.20191217.0
 # -*- coding: utf-8 -*-
 
 from logging import getLogger, handlers, Formatter, StreamHandler, DEBUG
@@ -453,8 +453,8 @@ def _logger():
 
 def _parser():
 	parser = argparse.ArgumentParser(
-		usage="""	python3 twiutil.py getUserMedia [auth_screen_name] --screen_name <screen_name>
-	python3 twiutil.py MediaFavRt [auth_screen_name] --keyword '<search_word>'
+		usage="""	python3 twiutil.py getMediaOnFollow [auth_screen_name] --screen_name <screen_name>
+	python3 twiutil.py searchMediaFavRt [auth_screen_name] --keyword '<search_word>'
 	python3 twiutil.py searchWordOnTL [auth_screen_name] --screen_name <screen_name> --user_id <dstuser> --keyword '<search_word>'
 	python3 twiutil.py searchWord2Json [auth_screen_name] --keyword '<search_word>' --output <output_file>
 	python3 twiutil.py searchWordGetMedia [auth_screen_name] --keyword '<search_word>'
@@ -541,7 +541,7 @@ def _main():
 		screen_name = cmd_args.screen_name
 	if cmd_args.user_id:
 		user_id = cmd_args.user_id
-	if cmd_args.keyword[0]:
+	if cmd_args.keyword:
 		keyword = cmd_args.keyword[0]
 	if cmd_args.output:
 		output = cmd_args.output
@@ -553,7 +553,7 @@ def _main():
 	logger.debug("mode:" + mode)
 
 	# フォローしている人のMediaをDownload
-	if mode == "getUserMedia":
+	if mode == "getMediaOnFollow":
 		if not cmd_args.screen_name:
 			raise Exception('Not set screen_name')
 		user_id = getter.showUser(screen_name)["id"]
@@ -623,7 +623,7 @@ def _main():
 			getter.messageSent(user_id, text_msg)
 	
 	# キーワード画像検索してFAVRT/day
-	if mode == "MediaFavRt":
+	if mode == "searchMediaFavRt":
 		if not (screen_name or keyword):
 			raise Exception('Not set screen_name or keyword')
 		cnt = 0
@@ -676,7 +676,7 @@ def _main():
 		with open(output, "w") as save:
 			json.dump(json_sw,save)
 	
-	# キーワード検索してMedia抽出
+	# キーワード検索してMediaをDownload
 	if mode == "searchWordGetMedia":
 		if not (keyword):
 			raise Exception('Not set keyword')
@@ -693,7 +693,7 @@ def _main():
 					downloadMedia(j["url"], FILEPATH, j["fn"])
 	
 	
-	# フォローしている人のMediaをDownload
+	# screen_nameのMediaをDownload
 	if mode == "getMediaOnScreen":
 		if not cmd_args.screen_name:
 			raise Exception('Not set screen_name')
