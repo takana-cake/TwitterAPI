@@ -1,4 +1,4 @@
-#v.20191217.0
+#v.20191221.0
 # -*- coding: utf-8 -*-
 
 from logging import getLogger, handlers, Formatter, StreamHandler, DEBUG
@@ -130,6 +130,51 @@ class TwetterObj:
 		sys.stdout.flush()
 		time.sleep(seconds + 10)  # 念のため + 10 秒
 
+	def addList(self, list_id, user_id):
+		url_addlist = "https://api.twitter.com/1.1/lists/members/create.json"
+		params = {'list_id' : list_id, 'user_id' : user_id}
+		unavailableCnt = 0
+		while True:
+			try:
+				res = self.session.post(url_addlist, params = params)
+			except ConnectionError as e:
+				logger.debug("ConnectionError:" + str(e))
+				time.sleep(60)
+				continue
+			if res.status_code == 503:
+				if unavailableCnt > 10:
+					logger.debug(str(tweetId) + str(res.status_code) + res.text)
+					break
+				unavailableCnt += 1
+				self.waitUntilReset(time.mktime(datetime.datetime.now().timetuple()) + 30)
+				continue
+			if res.status_code != 200:
+				logger.debug(str(tweetId) + str(res.status_code) + res.text)
+			break
+
+	def showList(self, user_id):
+		url_showlist = "https://api.twitter.com/1.1/lists/show.json"
+		params = {'user_id' : user_id}
+		unavailableCnt = 0
+		while True:
+			try:
+				res = self.session.post(url_showlist, params = params)
+			except ConnectionError as e:
+				logger.debug("ConnectionError:" + str(e))
+				time.sleep(60)
+				continue
+			if res.status_code == 503:
+				if unavailableCnt > 10:
+					logger.debug(str(tweetId) + str(res.status_code) + res.text)
+					break
+				unavailableCnt += 1
+				self.waitUntilReset(time.mktime(datetime.datetime.now().timetuple()) + 30)
+				continue
+			if res.status_code != 200:
+				logger.debug(str(tweetId) + str(res.status_code) + res.text)
+			break
+		return res.text
+	
 	def favorites(self, tweetId):
 		url_fav = "https://api.twitter.com/1.1/favorites/create.json"
 		params = {'id' : tweetId}
