@@ -503,16 +503,15 @@ def _logger():
 
 def _parser():
 	parser = argparse.ArgumentParser(
-		usage="""	python3 twiutil.py getMediaOnFollow [auth_screen_name] --screen_name <screen_name>
+		usage="""python3 twiutil.py [mode] [auth_screen_name] <--option>
+	python3 twiutil.py getMediaOnFollow [auth_screen_name] --screen_name <screen_name>
 	python3 twiutil.py searchMediaFavRt [auth_screen_name] --keyword '<search_word>'
 	python3 twiutil.py searchWordOnTL [auth_screen_name] --screen_name <screen_name> --user_id <send message> --keyword '<search_word>'
 	python3 twiutil.py searchWord2Json [auth_screen_name] --keyword '<search_word>' --output <output_file>
 	python3 twiutil.py searchWordGetMedia [auth_screen_name] --keyword '<search_word>'
 	python3 twiutil.py getMediaOnScreen [auth_screen_name] --screen_name <screen_name>
 	python3 twiutil.py showList [auth_screen_name] --screen_name <screen_name>
-	python3 twiutil.py addListFollowUser [auth_screen_name] --screen_name <screen_name> --list_id <list_id>
-	
-	python3 twiutil.py test [auth_screen_name]""",
+	python3 twiutil.py addListFollowUser [auth_screen_name] --screen_name <screen_name> --list_id <list_id>""",
 		add_help=True,
 		formatter_class=argparse.RawTextHelpFormatter
 	)
