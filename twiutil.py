@@ -1,4 +1,4 @@
-#v.20191222.0
+#v.20191222.1
 # -*- coding: utf-8 -*-
 
 from logging import getLogger, handlers, Formatter, StreamHandler, DEBUG
@@ -153,9 +153,12 @@ class TwetterObj:
 				self.checkLimit("lists", "/lists/members")
 			break
 
-	def showList(self, user_id):
+	def showList(self, user_id = "", screen_name = ""):
 		url_showlist = "https://api.twitter.com/1.1/lists/list.json"
-		params = {'user_id' : user_id}
+		if user_id:
+			params = {'user_id' : user_id}
+		elif screen_name:
+			params = {'screen_name' : screen_name}
 		unavailableCnt = 0
 		while True:
 			try:
@@ -793,7 +796,7 @@ def _main():
 		if not cmd_args.screen_name:
 			raise Exception('Not set screen_name')
 		user_id = getter.showUser(screen_name = screen_name)["id"]
-		lists = getter.showList(user_id)
+		lists = getter.showList(user_id = user_id)
 		for l in lists:
 			logger.debug("id:" + str(l["id"]) + ", name:" + l["full_name"])
 	if mode == "addListFollowUser":
