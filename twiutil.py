@@ -1,4 +1,4 @@
-#v.20191222.1
+#v.20191222.2
 # -*- coding: utf-8 -*-
 
 from logging import getLogger, handlers, Formatter, StreamHandler, DEBUG
@@ -129,30 +129,7 @@ class TwetterObj:
 		logger.debug("waiting" + str(seconds) + "sec")
 		sys.stdout.flush()
 		time.sleep(seconds + 10)  # 念のため + 10 秒
-
-	def addList(self, list_id, adduser_id):
-		url_addlist = "https://api.twitter.com/1.1/lists/members/create.json"
-		params = {'list_id' : list_id, 'user_id' : adduser_id}
-		unavailableCnt = 0
-		while True:
-			try:
-				res = self.session.post(url_addlist, params = params)
-			except ConnectionError as e:
-				logger.debug("ConnectionError:" + str(e))
-				time.sleep(60)
-				continue
-			if res.status_code == 503:
-				if unavailableCnt > 10:
-					logger.debug(str(tweetId) + str(res.status_code) + res.text)
-					break
-				unavailableCnt += 1
-				self.waitUntilReset(time.mktime(datetime.datetime.now().timetuple()) + 30)
-				continue
-			if res.status_code != 200:
-				logger.debug(res.text)
-				self.checkLimit("lists", "/lists/members")
-			break
-
+	
 	def showList(self, user_id = "", screen_name = ""):
 		url_showlist = "https://api.twitter.com/1.1/lists/list.json"
 		if user_id:
@@ -180,6 +157,53 @@ class TwetterObj:
 		res_text = json.loads(res.text)
 		return res_text
 	
+	def getList(self, list_id):
+		url_getList = "https://api.twitter.com/1.1/lists/show.json"
+		params = {'list_id' : list_id}
+		unavailableCnt = 0
+		while True:
+			try:
+				res = self.session.get(url_getList, params = params)
+			except ConnectionError as e:
+				logger.debug("ConnectionError:" + str(e))
+				time.sleep(60)
+				continue
+			if res.status_code == 503:
+				if unavailableCnt > 10:
+					logger.debug(str(tweetId) + str(res.status_code) + res.text)
+					break
+				unavailableCnt += 1
+				self.waitUntilReset(time.mktime(datetime.datetime.now().timetuple()) + 30)
+				continue
+			if res.status_code != 200:
+				logger.debug(res.text)
+			break
+		res_text = json.loads(res.text)
+		return res_text
+	
+	def addList(self, list_id, adduser_id):
+		url_addlist = "https://api.twitter.com/1.1/lists/members/create.json"
+		params = {'list_id' : list_id, 'user_id' : adduser_id}
+		unavailableCnt = 0
+		while True:
+			try:
+				res = self.session.post(url_addlist, params = params)
+			except ConnectionError as e:
+				logger.debug("ConnectionError:" + str(e))
+				time.sleep(60)
+				continue
+			if res.status_code == 503:
+				if unavailableCnt > 10:
+					logger.debug(str(tweetId) + str(res.status_code) + res.text)
+					break
+				unavailableCnt += 1
+				self.waitUntilReset(time.mktime(datetime.datetime.now().timetuple()) + 30)
+				continue
+			if res.status_code != 200:
+				logger.debug(res.text)
+				self.checkLimit("lists", "/lists/members")
+			break
+
 	def favorites(self, tweetId):
 		url_fav = "https://api.twitter.com/1.1/favorites/create.json"
 		params = {'id' : tweetId}
@@ -510,7 +534,7 @@ def _parser():
 	python3 twiutil.py searchWord2Json [auth_screen_name] --keyword '<search_word>' --output <output_file>
 	python3 twiutil.py searchWordGetMedia [auth_screen_name] --keyword '<search_word>'
 	python3 twiutil.py getMediaOnScreen [auth_screen_name] --screen_name <screen_name>
-	python3 twiutil.py showList [auth_screen_name] --screen_name <screen_name>
+	python3 twiutil.py showUsrList [auth_screen_name] --screen_name <screen_name>
 	python3 twiutil.py addListFollowUser [auth_screen_name] --screen_name <screen_name> --list_id <list_id>""",
 		add_help=True,
 		formatter_class=argparse.RawTextHelpFormatter
@@ -524,15 +548,16 @@ def _parser():
 	parser.add_argument("--list_id", help="", type=str, metavar="'<list_id>'")
 	return parser.parse_args()
 
-def help():
+def _help():
 	print("""class
 	TwetterObj(CK, CS, AT, AS)
 method
 	collect(keyword, fullText = False, total = -1, onlyText = False, includeRetweet = False)
 	checkLimit(arg1, arg2)  Get rate limits and usage applied to each Rest API endpoint
 	waitUntilReset(reset)
+	showUsrList(user_id = "", screen_name = "")
+	getList(list_id)
 	addList(list_id, adduser_id)
-	showList(user_id = "", screen_name = "")
 	favorites(tweetId)
 	retweet(tweetId)
 	showStatus(tweetId)	     Return statuses-show response.
@@ -609,14 +634,6 @@ def _main():
 	getter = TwetterObj(CK, CS, AT, AS)
 	logger.debug("mode:" + mode)
 	
-	# test
-	if mode == "test":
-		user_id = getter.showUser(screen_name = screen_name)["id"]
-		lists = getter.showList(user_id)
-		for l in lists:
-			logger.debug("id:" + str(l["id"]) + ", name:" + l["full_name"] + ", count:" + str(l["member_count"]))
-		sys.exit()
-	
 	# フォローしている人のMediaをDownload
 	if mode == "getMediaOnFollow":
 		if not cmd_args.screen_name:
@@ -666,7 +683,7 @@ def _main():
 		text_msg = ""
 		cnt = 0
 		timer = datetime.now() + timedelta(minutes=55)
-		timer_sin = datetime.now().replace(minute=0,second=0) - timedelta(hours=6)
+		timer_sin = datetime.now().replace(minute=0,second=0) - timedelta(hours=6) # 6時間以内
 		for tweet in getter.collect(keyword, total = 1000):
 			cnt += 1
 			unix_time = ((tweet['id'] >> 22) + 1288834974657) / 1000.0
@@ -674,7 +691,8 @@ def _main():
 			if timer_sin > ts:
 			       break
 			if tweet['user']['id'] in flist:
-				text_msg = text_msg + "https://twitter.com/" + tweet['user']['screen_name'] + "/status/" + str(tweet['id']) +"\n"
+				text_msg = "https://twitter.com/" + tweet['user']['screen_name'] + "/status/" + str(tweet['id'])
+				getter.messageSent(user_id, text_msg)
 			timer_now = datetime.now()
 			if timer > timer_now and 95 < cnt:
 				slt = timer - timer_now
@@ -684,8 +702,6 @@ def _main():
 				cnt = 0
 			else:
 				time.sleep(30)
-		if text_msg:
-			getter.messageSent(user_id, text_msg)
 	
 	# キーワード画像検索してFAVRT/day
 	if mode == "searchMediaFavRt":
@@ -791,11 +807,11 @@ def _main():
 			json.dump(json_data,save)
 	
 	# Followユーザーをリストへ追加する
-	if mode == "showList":
+	if mode == "showUsrList":
 		if not cmd_args.screen_name:
 			raise Exception('Not set screen_name')
 		user_id = getter.showUser(screen_name = screen_name)["id"]
-		lists = getter.showList(user_id = user_id)
+		lists = getter.showUsrList(user_id = user_id)
 		for l in lists:
 			logger.debug("id:" + str(l["id"]) + ", name:" + l["full_name"])
 	if mode == "addListFollowUser":
@@ -811,4 +827,4 @@ if __name__ == '__main__':
 	_main()
 else:
 	logger = _logger()
-	help()
+	_help()
