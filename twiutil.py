@@ -1,4 +1,4 @@
-#v.20191221.0
+#v.20191222.0
 # -*- coding: utf-8 -*-
 
 from logging import getLogger, handlers, Formatter, StreamHandler, DEBUG
@@ -130,9 +130,9 @@ class TwetterObj:
 		sys.stdout.flush()
 		time.sleep(seconds + 10)  # 念のため + 10 秒
 
-	def addList(self, list_id, user_id):
+	def addList(self, list_id, adduser_id):
 		url_addlist = "https://api.twitter.com/1.1/lists/members/create.json"
-		params = {'list_id' : list_id, 'user_id' : user_id}
+		params = {'list_id' : list_id, 'user_id' : adduser_id}
 		unavailableCnt = 0
 		while True:
 			try:
@@ -149,16 +149,17 @@ class TwetterObj:
 				self.waitUntilReset(time.mktime(datetime.datetime.now().timetuple()) + 30)
 				continue
 			if res.status_code != 200:
-				logger.debug(str(tweetId) + str(res.status_code) + res.text)
+				logger.debug(res.text)
+				self.checkLimit("lists", "/lists/members")
 			break
 
 	def showList(self, user_id):
-		url_showlist = "https://api.twitter.com/1.1/lists/show.json"
+		url_showlist = "https://api.twitter.com/1.1/lists/list.json"
 		params = {'user_id' : user_id}
 		unavailableCnt = 0
 		while True:
 			try:
-				res = self.session.post(url_showlist, params = params)
+				res = self.session.get(url_showlist, params = params)
 			except ConnectionError as e:
 				logger.debug("ConnectionError:" + str(e))
 				time.sleep(60)
@@ -171,9 +172,10 @@ class TwetterObj:
 				self.waitUntilReset(time.mktime(datetime.datetime.now().timetuple()) + 30)
 				continue
 			if res.status_code != 200:
-				logger.debug(str(tweetId) + str(res.status_code) + res.text)
+				logger.debug(res.text)
 			break
-		return res.text
+		res_text = json.loads(res.text)
+		return res_text
 	
 	def favorites(self, tweetId):
 		url_fav = "https://api.twitter.com/1.1/favorites/create.json"
@@ -500,10 +502,14 @@ def _parser():
 	parser = argparse.ArgumentParser(
 		usage="""	python3 twiutil.py getMediaOnFollow [auth_screen_name] --screen_name <screen_name>
 	python3 twiutil.py searchMediaFavRt [auth_screen_name] --keyword '<search_word>'
-	python3 twiutil.py searchWordOnTL [auth_screen_name] --screen_name <screen_name> --user_id <dstuser> --keyword '<search_word>'
+	python3 twiutil.py searchWordOnTL [auth_screen_name] --screen_name <screen_name> --user_id <send message> --keyword '<search_word>'
 	python3 twiutil.py searchWord2Json [auth_screen_name] --keyword '<search_word>' --output <output_file>
 	python3 twiutil.py searchWordGetMedia [auth_screen_name] --keyword '<search_word>'
-	python3 twiutil.py getMediaOnScreen [auth_screen_name] --screen_name <screen_name>""",
+	python3 twiutil.py getMediaOnScreen [auth_screen_name] --screen_name <screen_name>
+	python3 twiutil.py showList [auth_screen_name] --screen_name <screen_name>
+	python3 twiutil.py addListFollowUser [auth_screen_name] --screen_name <screen_name> --list_id <list_id>
+	
+	python3 twiutil.py test [auth_screen_name]""",
 		add_help=True,
 		formatter_class=argparse.RawTextHelpFormatter
 	)
@@ -513,6 +519,7 @@ def _parser():
 	parser.add_argument("--user_id", help="", type=int, metavar="<user_id>")
 	parser.add_argument("--keyword", help="", type=str, nargs='*', metavar="'<keyword>'")
 	parser.add_argument("--output", help="", type=str, metavar="'<output_file>'")
+	parser.add_argument("--list_id", help="", type=str, metavar="'<list_id>'")
 	return parser.parse_args()
 
 def help():
@@ -522,12 +529,13 @@ method
 	collect(keyword, fullText = False, total = -1, onlyText = False, includeRetweet = False)
 	checkLimit(arg1, arg2)  Get rate limits and usage applied to each Rest API endpoint
 	waitUntilReset(reset)
-	retweet(tweetId)
+	addList(list_id, adduser_id)
+	showList(user_id = "", screen_name = "")
 	favorites(tweetId)
+	retweet(tweetId)
 	showStatus(tweetId)	     Return statuses-show response.
 	getFollowList(screen_name)      Get follow "id" and "screen_name".
 	showUser(screen_name = "", user_id = "")	Return user-show response.
-	checkKeyword(keyword, timer, timer_sin)	 Append to self.tl2json list.
 	searchKeyword(keyword, total = 1000, onlyText = False, includeRetweet = False)
 		yield tweet.
 	messageSent(user_id, send_text)
@@ -588,6 +596,8 @@ def _main():
 		user_id = cmd_args.user_id
 	if cmd_args.keyword:
 		keyword = cmd_args.keyword[0]
+	if cmd_args.list_id:
+		list_id = cmd_args.list_id
 	if cmd_args.output:
 		output = cmd_args.output
 		if not os.path.dirname(output):
@@ -596,7 +606,15 @@ def _main():
 	# インスタンス作成
 	getter = TwetterObj(CK, CS, AT, AS)
 	logger.debug("mode:" + mode)
-
+	
+	# test
+	if mode == "test":
+		user_id = getter.showUser(screen_name = screen_name)["id"]
+		lists = getter.showList(user_id)
+		for l in lists:
+			logger.debug("id:" + str(l["id"]) + ", name:" + l["full_name"] + ", count:" + str(l["member_count"]))
+		sys.exit()
+	
 	# フォローしている人のMediaをDownload
 	if mode == "getMediaOnFollow":
 		if not cmd_args.screen_name:
@@ -737,7 +755,6 @@ def _main():
 				if j:
 					downloadMedia(j["url"], FILEPATH, j["fn"])
 	
-	
 	# screen_nameのMediaをDownload
 	if mode == "getMediaOnScreen":
 		if not cmd_args.screen_name:
@@ -771,17 +788,20 @@ def _main():
 		with open(download_dir + "db.json", "w") as save:
 			json.dump(json_data,save)
 	
-	# DM送る
-	'''
-	user_ids = []
-	text_msg = ""
-	for tl in getter.tl2json:
-		if tl['fflag'] is True:
-			text_msg = text_msg + "https://twitter.com/" + tl['screen'] + "/status/" + str(tl['id']) +"\n"
-	if text_msg:
-		for i in user_ids:
-			getter.messageSent(i, send_text)
-	'''
+	# Followユーザーをリストへ追加する
+	if mode == "showList":
+		if not cmd_args.screen_name:
+			raise Exception('Not set screen_name')
+		user_id = getter.showUser(screen_name = screen_name)["id"]
+		lists = getter.showList(user_id)
+		for l in lists:
+			logger.debug("id:" + str(l["id"]) + ", name:" + l["full_name"])
+	if mode == "addListFollowUser":
+		if not (screen_name or list_id):
+			raise Exception('Not set screen_name or list_id')
+		flist_res = getter.getFollowList(screen_name)
+		for f in flist_res:
+			getter.addList(list_id, f["id"])
 
 
 if __name__ == '__main__':
