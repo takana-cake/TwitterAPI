@@ -1,4 +1,4 @@
-#v.20191222.2
+#v.20200104.0
 # -*- coding: utf-8 -*-
 
 from logging import getLogger, handlers, Formatter, StreamHandler, DEBUG
@@ -14,7 +14,7 @@ class TwetterObj:
 	def __init__(self, CK, CS, AT, AS):
 		self.session = OAuth1Session(CK, CS, AT, AS)
 
-	def collect(self, keyword, fullText = False, total = -1, onlyText = False, includeRetweet = False):
+	def searchTweets(self, keyword, fullText = False, total = -1, onlyText = False, includeRetweet = False):
 		#----------------
 		# URL、パラメータ
 		#----------------
@@ -355,7 +355,7 @@ class TwetterObj:
 
 	def searchKeyword(self, keyword, total = 1000, onlyText = False, includeRetweet = False):
 		self.keyword = keyword
-		for tweet in self.collect(keyword, total, onlyText, includeRetweet):
+		for tweet in self.searchTweets(keyword, total, onlyText, includeRetweet):
 			yield tweet
 
 	def messageSent(self, send2id, text_msg):
@@ -552,7 +552,7 @@ def _help():
 	print("""class
 	TwetterObj(CK, CS, AT, AS)
 method
-	collect(keyword, fullText = False, total = -1, onlyText = False, includeRetweet = False)
+	searchTweets(keyword, fullText = False, total = -1, onlyText = False, includeRetweet = False)
 	checkLimit(arg1, arg2)  Get rate limits and usage applied to each Rest API endpoint
 	waitUntilReset(reset)
 	showUsrList(user_id = "", screen_name = "")
@@ -684,7 +684,7 @@ def _main():
 		cnt = 0
 		timer = datetime.now() + timedelta(minutes=55)
 		timer_sin = datetime.now().replace(minute=0,second=0) - timedelta(hours=6) # 6時間以内
-		for tweet in getter.collect(keyword, total = 1000):
+		for tweet in getter.searchTweets(keyword, total = 1000):
 			cnt += 1
 			unix_time = ((tweet['id'] >> 22) + 1288834974657) / 1000.0
 			ts = datetime.fromtimestamp(unix_time)
@@ -710,7 +710,7 @@ def _main():
 		cnt = 0
 		timer = datetime.now() + timedelta(minutes=55)
 		timer_sin = datetime.now().replace(hour=0,minute=0,second=0) - timedelta(days=1)
-		for tweet in getter.collect(keyword, total = 1000):
+		for tweet in getter.searchTweets(keyword, total = 1000):
 			cnt += 1
 			unix_time = ((tweet['id'] >> 22) + 1288834974657) / 1000.0
 			ts = datetime.fromtimestamp(unix_time)
@@ -741,7 +741,7 @@ def _main():
 		json_sw = []
 		cnt = 0
 		timer = datetime.now() + timedelta(minutes=55)
-		for tweet in getter.collect(keyword, fullText = True, total = 1000):
+		for tweet in getter.searchTweets(keyword, fullText = True, total = 1000):
 			cnt += 1
 			json_sw.append({"name":tweet['user']['name'], "text":tweet["full_text"], "id":tweet['id']})
 			timer_now = datetime.now()
