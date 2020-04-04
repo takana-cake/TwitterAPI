@@ -1,4 +1,4 @@
-#v.20200104.0
+#v.20200404.0
 # -*- coding: utf-8 -*-
 
 from logging import getLogger, handlers, Formatter, StreamHandler, DEBUG
@@ -476,12 +476,14 @@ def pickupMedia(tweet):
 			if media["type"] == 'photo':
 				DL_URL = media["media_url"]
 				FILENAME = os.path.basename(DL_URL)
+				MTYPE = "img"
 				DL_URL = DL_URL + ":orig"
-				ary.append({"fn":FILENAME,"url":DL_URL})
+				ary.append({"fn":FILENAME,"mtype":MTYPE,"url":DL_URL})
 			if media["type"] == 'animated_gif':
 				DL_URL = media["video_info"]["variants"][0]["url"]
 				FILENAME = os.path.basename(DL_URL)
-				ary.append({"fn":FILENAME,"url":DL_URL})
+				MTYPE = "gif"
+				ary.append({"fn":FILENAME,"mtype":MTYPE,"url":DL_URL})
 			if media["type"] == 'video':
 				for i, var in enumerate(media["video_info"]["variants"]):
 					if not "bitrate" in media["video_info"]["variants"][i]:
@@ -490,7 +492,8 @@ def pickupMedia(tweet):
 				if '?tag=' in DL_URL:
 					DL_URL = DL_URL.rsplit("?", 1)[0]
 				FILENAME = os.path.basename(DL_URL)
-				ary.append({"fn":FILENAME,"url":DL_URL})
+				MTYPE = "video"
+				ary.append({"fn":FILENAME,"mtype":MTYPE,"url":DL_URL})
 	return ary
 
 def downloadMedia(DL_URL, FILEPATH, FILENAME):
@@ -655,6 +658,9 @@ def _main():
 			FILEPATH = download_dir + f["screen_name"] + "/"
 			if os.path.exists(FILEPATH) == False:
 				os.makedirs(FILEPATH)
+				os.makedirs(FILEPATH + "img")
+				os.makedirs(FILEPATH + "video")
+				os.makedirs(FILEPATH + "gif")
 			last_id = max_id = ""
 			if f["id"] in json_data:
 				last_id = json_data[f["id"]]
@@ -667,7 +673,7 @@ def _main():
 				if ARY is None:
 					continue
 				for content in ARY:
-					downloadMedia(content["url"], FILEPATH, content["fn"])
+					downloadMedia(content["url"], FILEPATH + content["mtype"] + "/", content["fn"])
 			json_data[f["id"]] = max_id
 		with open(download_dir + "db.json", "w") as save:
 			json.dump(json_data,save)
@@ -765,13 +771,16 @@ def _main():
 		keyword = keyword + " filter:media"
 		if os.path.exists(FILEPATH) == False:
 			os.makedirs(FILEPATH)
+			os.makedirs(FILEPATH + "img")
+			os.makedirs(FILEPATH + "video")
+			os.makedirs(FILEPATH + "gif")
 		for i in getter.searchKeyword(keyword):
 			ARY = pickupMedia(i)
 			if ARY is None:
 				continue
-			for j in ARY:
-				if j:
-					downloadMedia(j["url"], FILEPATH, j["fn"])
+			for content in ARY:
+				if content:
+					downloadMedia(content["url"], FILEPATH + content["mtype"] + "/", content["fn"])
 	
 	# screen_nameのMediaをDownload
 	if mode == "getMediaOnScreen":
@@ -780,6 +789,9 @@ def _main():
 		FILEPATH = dir + screen_name + "/"
 		if os.path.exists(FILEPATH) == False:
 			os.makedirs(FILEPATH)
+			os.makedirs(FILEPATH + "img")
+			os.makedirs(FILEPATH + "video")
+			os.makedirs(FILEPATH + "gif")
 		if os.path.exists(FILEPATH + "db.json") == False:
 			with open(FILEPATH + "db.json", "w") as save:
 				pass
@@ -801,7 +813,7 @@ def _main():
 			if ARY is None:
 				continue
 			for content in ARY:
-				downloadMedia(content["url"], FILEPATH, content["fn"])
+				downloadMedia(content["url"], FILEPATH + content["mtype"] + "/", content["fn"])
 		json_data["last_id"] = max_id
 		with open(download_dir + "db.json", "w") as save:
 			json.dump(json_data,save)
