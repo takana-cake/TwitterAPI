@@ -1,4 +1,4 @@
-#v.20200404.0
+#v.20200706.0
 # -*- coding: utf-8 -*-
 
 from logging import getLogger, handlers, Formatter, StreamHandler, DEBUG
@@ -432,22 +432,16 @@ class TwetterObj:
 					break
 				raise Exception('Twitter API error ',res.status_code,res.text)
 
-			'''
-			tweets = self.pickupTweet(json.loads(res.text))
-			if len(tweets) == 0:
-				# len(tweets) != params['count'] としたいが
-				# count は最大値らしいので判定に使えない。
-				# ⇒  "== 0" にする
-				# https://dev.twitter.com/discussions/7513
-				break
-			'''
-
 			for tweet_tl in json.loads(res.text):
 				yield tweet_tl
 			if "since_id" in params:
 				params['since_id'] = tweet_tl['id'] + 1
 			else:
-				params['max_id'] = tweet_tl['id'] - 1
+				try:
+					params['max_id'] = tweet_tl['id'] - 1
+				except Exception as e:
+					print(e)
+					# tweet_tlが宣言されてないてでる
 
 
 			# ヘッダ確認 （回数制限）
@@ -654,7 +648,11 @@ def _main():
 			except ValueError:
 				json_data = {}
 		flist_res = getter.getFollowList(screen_name)
+		chknum = 0
+		fnum = str(len(flist_res))
 		for f in flist_res:
+			chknum+=1
+			logger.debug(str(chknum)+=1 + " / " + fnum)
 			FILEPATH = download_dir + f["screen_name"] + "/"
 			if os.path.exists(FILEPATH) == False:
 				os.makedirs(FILEPATH)
@@ -678,7 +676,7 @@ def _main():
 		with open(download_dir + "db.json", "w") as save:
 			json.dump(json_data,save)
 	
-	# keyword検索に対しフォローユーザがツイートしているか確認
+	# keyword検索に対しフォローしているユーザがツイートしているか確認
 	if mode == "searchWordOnTL":
 		if not (screen_name or keyword or user_id):
 			raise Exception('Not set screen_name or keyword or user_id')
@@ -837,6 +835,7 @@ def _main():
 if __name__ == '__main__':
 	logger = _logger()
 	_main()
+	logger.debug("finish.")
 else:
 	logger = _logger()
 	_help()
