@@ -1,11 +1,11 @@
-#v.20200706.0
+# TwitterAPI v.20200816.0
 # -*- coding: utf-8 -*-
 
 from logging import getLogger, handlers, Formatter, StreamHandler, DEBUG
 from requests_oauthlib import OAuth1Session
 import argparse
 import json
-import time, sys, os, re
+import time, sys, os, re, csv
 from datetime import datetime, timedelta, timezone
 from requests.exceptions import ConnectionError
 import urllib.request
@@ -441,8 +441,8 @@ class TwetterObj:
 					params['max_id'] = tweet_tl['id'] - 1
 				except Exception as e:
 					print(e)
+					print(params)
 					# tweet_tlが宣言されてないてでる
-
 
 			# ヘッダ確認 （回数制限）
 			# X-Rate-Limit-Remaining が入ってないことが稀にあるのでチェック
@@ -453,10 +453,36 @@ class TwetterObj:
 			else:
 				logger.debug('not found  -  X-Rate-Limit-Remaining" OR "X-Rate-Limit-Reset')
 				self.checkLimit("search", "/search/tweets")
-
 			cnt += 1
 			if cnt >= 100:
 				break
+
+	def pickUrls(self, SCREEN, FILEPATH):
+		def splitUrls(TXT):
+			DESCURLS = []
+			SHORTURLS = []
+			URL_PATTERN = re.compile("http[!-~]+")
+			SHORTURLS = re.findall(URL_PATTERN, TXT)
+			for j in SHORTURLS:
+				if j[-1] in ["]", ")"]:
+					j = j[:-1]
+				try:
+					DESCURL = (urllib.request.urlopen(j,timeout=3).geturl())
+					DESCURLS.append(DESCURL)
+				except Exception as err:
+					logger.debug(err)
+					logger.debug(j)
+					DESCURLS.append(j)
+			return DESCURLS
+		USER_OBJECT = self.showUser(SCREEN)
+		URLS = []
+		USER_URL = USER_OBJECT["entities"]
+		USER_DESCRIPTION = USER_OBJECT["description"]
+		if "url" in USER_URL:
+			URLS.append(USER_URL["url"]["urls"][0]["expanded_url"])
+		URLS.extend(splitUrls(USER_DESCRIPTION))
+		return URLS
+
 
 
 ### download ###
@@ -524,20 +550,23 @@ def _logger():
 
 def _parser():
 	parser = argparse.ArgumentParser(
-		usage="""python3 twiutil.py [mode] [auth_screen_name] <--option>
-	python3 twiutil.py getMediaOnFollow [auth_screen_name] --screen_name <screen_name>
-	python3 twiutil.py searchMediaFavRt [auth_screen_name] --keyword '<search_word>'
-	python3 twiutil.py searchWordOnTL [auth_screen_name] --screen_name <screen_name> --user_id <send message> --keyword '<search_word>'
-	python3 twiutil.py searchWord2Json [auth_screen_name] --keyword '<search_word>' --output <output_file>
-	python3 twiutil.py searchWordGetMedia [auth_screen_name] --keyword '<search_word>'
-	python3 twiutil.py getMediaOnScreen [auth_screen_name] --screen_name <screen_name>
-	python3 twiutil.py showUsrList [auth_screen_name] --screen_name <screen_name>
-	python3 twiutil.py addListFollowUser [auth_screen_name] --screen_name <screen_name> --list_id <list_id>""",
+		usage="""python3 twiutil.py [mode] <--option>
+	
+	Mandatory auth_screen.
+	python3 twiutil.py getMediaOnFollow --auth_screen <auth_screen_name>
+	python3 twiutil.py searchMediaFavRt --auth_screen <auth_screen_name> --keyword '<search_word>'
+	python3 twiutil.py addListFollowUser --auth_screen <auth_screen_name> --list_id <list_id>
+	python3 twiutil.py searchWordOnTL --auth_screen <auth_screen_name> --user_id <send message> --keyword '<search_word>'
+	
+	python3 twiutil.py searchWord2Json --auth_screen <auth_screen_name> --keyword '<search_word>' --output <output_file>
+	python3 twiutil.py searchWordGetMedia --auth_screen <auth_screen_name> --keyword '<search_word>'
+	python3 twiutil.py getMediaOnScreen --auth_screen <auth_screen_name> --screen_name <screen_name>
+	python3 twiutil.py showUsrList --auth_screen <auth_screen_name> --screen_name <screen_name>""",
 		add_help=True,
 		formatter_class=argparse.RawTextHelpFormatter
 	)
 	parser.add_argument("mode", help="", type=str, metavar="[mode]")
-	parser.add_argument("auth", help="", type=str, metavar="[screen_name]")
+	parser.add_argument("--auth_screen", help="", type=str, metavar="<auth_screen>")
 	parser.add_argument("--screen_name", help="", type=str, metavar="<screen_name>")
 	parser.add_argument("--user_id", help="", type=int, metavar="<user_id>")
 	parser.add_argument("--keyword", help="", type=str, nargs='*', metavar="'<keyword>'")
@@ -573,7 +602,15 @@ def _main():
 		dir = os.path.dirname(sys.argv[0]) + "/"
 	else:
 		dir = os.getcwd() +"/"
+	cmd_args = _parser()
+	mode = cmd_args.mode
+	auth_screen = ""
+	if cmd_args.auth_screen:
+		auth_screen = cmd_args.auth_screen
+	logger.debug("mode:" + mode)
+	JST = timezone(timedelta(hours=+9), 'JST')
 	
+	# OAuth
 	secret = "secret.json"
 	if os.path.exists(dir + secret) == False:
 		with open(dir + secret,"w") as f:
@@ -594,26 +631,25 @@ def _main():
 					break
 				else:
 					print("please input keys")
-	
-	cmd_args = _parser()
-	try:
-		mode = cmd_args.mode
-		auth_screen = cmd_args.auth
-	except Exception as e:
-		logger.debug(str(e))
-		sys.exit()
-	JST = timezone(timedelta(hours=+9), 'JST')
-	# auth対策
+	save_data = []
 	if os.path.exists(dir + "save.json"):
 		with open(dir + "save.json") as save:
 			try:
 				save_data = json.load(save)
 			except ValueError:
-				save_data = []
+				pass
+	if not save_data:
+		logger.debug("save.json is not set. Please check tokenview.")
+		sys.exit()
+	if auth_screen:
 		for usr in save_data:
 			if usr["screen_name"] == auth_screen:
 				AT = usr["oauth_token"]
 				AS = usr["oauth_token_secret"]
+	else:
+		AT = save_data[0]["oauth_token"]
+		AS = save_data[0]["oauth_token_secret"]
+	
 	if cmd_args.screen_name:
 		screen_name = cmd_args.screen_name
 	if cmd_args.user_id:
@@ -629,14 +665,13 @@ def _main():
 	
 	# インスタンス作成
 	getter = TwetterObj(CK, CS, AT, AS)
-	logger.debug("mode:" + mode)
 	
 	# フォローしている人のMediaをDownload
-	if mode == "getMediaOnFollow":
-		if not cmd_args.screen_name:
-			raise Exception('Not set screen_name')
-		user_id = getter.showUser(screen_name)["id"]
-		download_dir = dir + screen_name + "/"
+	if mode == "getMediaOnFollow" or mode == "getMediaOnFollowEachUser":
+		if not cmd_args.auth_screen:
+			raise Exception('Not set auth_screen')
+		user_id = getter.showUser(auth_screen)["id"]
+		download_dir = dir + auth_screen + "/"
 		if os.path.exists(download_dir) == False:
 			os.makedirs(download_dir)
 		if os.path.exists(download_dir + "db.json") == False:
@@ -647,13 +682,16 @@ def _main():
 				json_data = json.load(db)
 			except ValueError:
 				json_data = {}
-		flist_res = getter.getFollowList(screen_name)
+		flist_res = getter.getFollowList(auth_screen)
 		chknum = 0
 		fnum = str(len(flist_res))
 		for f in flist_res:
 			chknum+=1
-			logger.debug(str(chknum)+=1 + " / " + fnum)
-			FILEPATH = download_dir + f["screen_name"] + "/"
+			logger.debug(str(chknum) + " / " + fnum)
+			if mode == "getMediaOnFollowEachUser":
+				FILEPATH = download_dir + f["screen_name"] + "/"
+			else:
+				FILEPATH = download_dir
 			if os.path.exists(FILEPATH) == False:
 				os.makedirs(FILEPATH)
 				os.makedirs(FILEPATH + "img")
@@ -678,9 +716,9 @@ def _main():
 	
 	# keyword検索に対しフォローしているユーザがツイートしているか確認
 	if mode == "searchWordOnTL":
-		if not (screen_name or keyword or user_id):
-			raise Exception('Not set screen_name or keyword or user_id')
-		flist_res = getter.getFollowList(screen_name)
+		if not (auth_screen or keyword or user_id):
+			raise Exception('Not set auth_screen or keyword or user_id')
+		flist_res = getter.getFollowList(auth_screen)
 		flist = []
 		for f in flist_res:
 			flist.append(f["id"])
@@ -709,8 +747,8 @@ def _main():
 	
 	# キーワード画像検索してFAVRT/day
 	if mode == "searchMediaFavRt":
-		if not (screen_name or keyword):
-			raise Exception('Not set screen_name or keyword')
+		if not (auth_screen or keyword):
+			raise Exception('Not set auth_screen or keyword')
 		cnt = 0
 		timer = datetime.now() + timedelta(minutes=55)
 		timer_sin = datetime.now().replace(hour=0,minute=0,second=0) - timedelta(days=1)
@@ -816,7 +854,7 @@ def _main():
 		with open(download_dir + "db.json", "w") as save:
 			json.dump(json_data,save)
 	
-	# Followユーザーをリストへ追加する
+	# ユーザーの作成したリストを一覧表示する
 	if mode == "showUsrList":
 		if not cmd_args.screen_name:
 			raise Exception('Not set screen_name')
@@ -824,13 +862,24 @@ def _main():
 		lists = getter.showUsrList(user_id = user_id)
 		for l in lists:
 			logger.debug("id:" + str(l["id"]) + ", name:" + l["full_name"])
+	# Followユーザーをリストへ追加する
 	if mode == "addListFollowUser":
-		if not (screen_name or list_id):
-			raise Exception('Not set screen_name or list_id')
-		flist_res = getter.getFollowList(screen_name)
+		if not (auth_screen or list_id):
+			raise Exception('Not set auth_screen or list_id')
+		flist_res = getter.getFollowList(auth_screen)
 		for f in flist_res:
 			getter.addList(list_id, f["id"])
-
+	
+	# test
+	if mode == "test":
+		SCREEN = ""
+		FILEPATH = ""
+		urllist = []
+		alist = getter.getFollowList(SCREEN)
+		for a in alist:
+			urllist.extend(getter.pickUrls(a["screen_name"], FILEPATH))
+		with open(FILEPATH + "urls.txt", "a") as f:
+			f.write("\n".join(urllist))
 
 if __name__ == '__main__':
 	logger = _logger()
