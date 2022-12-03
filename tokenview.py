@@ -906,8 +906,7 @@ def _main():
 	if mode == "test":
 		res = getter.getTrends()
 		for i in res[0]["trends"]:
-			print("tweet_volume:" + i["tweet_volume"])
-			print("query:" + unquote(i["query"]))
+			print(str(i["tweet_volume"]) + "	:" + unquote(i["query"]))
 
 if __name__ == '__main__':
 	logger = _logger()
